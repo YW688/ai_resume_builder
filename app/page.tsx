@@ -1,283 +1,180 @@
-// Instagram-style profile page — display only, no interactive logic.
-import type { ReactNode } from "react";
+import Link from "next/link";
 
-type Post = {
-  id: number;
-  emoji: string;
-  gradient: string;
-  likes: string;
-  comments: string;
-};
-
-type Highlight = {
-  id: number;
-  emoji: string;
-  gradient: string;
-  label: string;
-};
-
-// Brand gradient reused for story rings, logo, etc.
-const BRAND_GRADIENT =
-  "bg-gradient-to-tr from-amber-400 via-pink-500 to-purple-600";
-
-// Sample posts (gradients stand in for photos so the page works offline).
-const POSTS: Post[] = [
-  { id: 1, emoji: "🌅", gradient: "from-amber-200 via-orange-300 to-rose-400", likes: "1,204", comments: "38" },
-  { id: 2, emoji: "🌊", gradient: "from-sky-200 via-cyan-300 to-blue-500", likes: "982", comments: "21" },
-  { id: 3, emoji: "🌿", gradient: "from-lime-200 via-emerald-300 to-teal-500", likes: "1,540", comments: "64" },
-  { id: 4, emoji: "🌸", gradient: "from-pink-200 via-rose-300 to-fuchsia-400", likes: "2,331", comments: "102" },
-  { id: 5, emoji: "🌌", gradient: "from-indigo-300 via-purple-400 to-violet-600", likes: "876", comments: "17" },
-  { id: 6, emoji: "🏔️", gradient: "from-slate-200 via-blue-300 to-slate-500", likes: "1,118", comments: "45" },
-  { id: 7, emoji: "☀️", gradient: "from-yellow-200 via-amber-300 to-orange-400", likes: "3,006", comments: "150" },
-  { id: 8, emoji: "🍂", gradient: "from-orange-200 via-amber-400 to-red-500", likes: "690", comments: "12" },
-  { id: 9, emoji: "🎨", gradient: "from-fuchsia-200 via-purple-300 to-indigo-500", likes: "1,442", comments: "58" },
-];
-
-const HIGHLIGHTS: Highlight[] = [
-  { id: 1, emoji: "✈️", gradient: "from-sky-300 to-blue-500", label: "Travel" },
-  { id: 2, emoji: "🍜", gradient: "from-amber-300 to-orange-500", label: "Food" },
-  { id: 3, emoji: "🌿", gradient: "from-emerald-300 to-teal-500", label: "Nature" },
-  { id: 4, emoji: "🎨", gradient: "from-fuchsia-300 to-purple-500", label: "Art" },
-  { id: 5, emoji: "📷", gradient: "from-pink-300 to-rose-500", label: "Daily" },
-];
-
-// --- Inline icons (outline style, stroke = currentColor) ---
-function Icon({ children }: { children: ReactNode }) {
+export default function Home() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-6 w-6"
-    >
-      {children}
-    </svg>
-  );
-}
-
-const icons = {
-  home: (
-    <Icon>
-      <path d="M3 10.5 12 3l9 7.5" />
-      <path d="M5 9.5V21h14V9.5" />
-    </Icon>
-  ),
-  search: (
-    <Icon>
-      <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.5-3.5" />
-    </Icon>
-  ),
-  compass: (
-    <Icon>
-      <circle cx="12" cy="12" r="9" />
-      <path d="m15.5 8.5-2 5-5 2 2-5z" />
-    </Icon>
-  ),
-  reel: (
-    <Icon>
-      <rect x="3" y="4" width="18" height="16" rx="3" />
-      <path d="m9 4 1.5 5L12 4l1.5 5L15 4" />
-      <path d="M8.5 15.5 13 12l-4.5-3.5z" />
-    </Icon>
-  ),
-  heart: (
-    <Icon>
-      <path d="M12 21s-7.5-4.6-9.5-9C1 8.6 2.8 5 6.5 5c2 0 3.4 1 4.5 2.6L12 9l1-1.4C14.1 6 15.5 5 17.5 5 21.2 5 23 8.6 21.5 12c-2 4.4-9.5 9-9.5 9z" />
-    </Icon>
-  ),
-  plus: (
-    <Icon>
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <path d="M12 8v8M8 12h8" />
-    </Icon>
-  ),
-  messenger: (
-    <Icon>
-      <path d="m12 3 9 4.5-2.2 10.5H5.2L3 7.5z" />
-      <path d="M3 7.5 12 13l9-5.5" />
-    </Icon>
-  ),
-};
-
-function ProfileHeader() {
-  return (
-    <div className="flex gap-8 px-4 py-6 sm:gap-16 sm:py-8">
-      {/* Avatar with story ring */}
-      <div className={`shrink-0 rounded-full p-[3px] ${BRAND_GRADIENT}`}>
-        <div className="rounded-full bg-white p-[3px]">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-sky-300 to-indigo-400 text-2xl font-bold text-white sm:h-28 sm:w-28 sm:text-4xl">
-            JD
-          </div>
-        </div>
-      </div>
-
-      {/* Info */}
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-          <h1 className="text-xl font-light sm:text-2xl">jane.doe</h1>
-          <button className="rounded-lg bg-zinc-100 px-4 py-1.5 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-200">
-            Edit profile
-          </button>
-          <button className="rounded-lg bg-zinc-100 px-4 py-1.5 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-200">
-            Share profile
-          </button>
-        </div>
-
-        {/* Stats */}
-        <div className="mt-4 flex gap-6 text-sm sm:gap-10">
-          <span>
-            <strong className="font-semibold">12</strong> posts
-          </span>
-          <span>
-            <strong className="font-semibold">1,284</strong> followers
-          </span>
-          <span>
-            <strong className="font-semibold">341</strong> following
-          </span>
-        </div>
-
-        {/* Bio */}
-        <div className="mt-4 text-sm leading-relaxed">
-          <p className="font-semibold">Jane Doe</p>
-          <p>✨ Just living life one gradient at a time</p>
-          <p>🌿 Plant lover · 📍 San Francisco</p>
-          <a href="#" className="font-semibold text-blue-500">
-            linktr.ee/jane.doe
-          </a>
-        </div>
-      </div>
+    <div className="min-h-screen bg-white text-zinc-900">
+      <Nav />
+      <Hero />
+      <HowItWorks />
+      <Features />
+      <Pricing />
+      <Footer />
     </div>
   );
 }
 
-function StoryHighlights() {
+function Nav() {
   return (
-    <div className="flex gap-5 overflow-x-auto px-4 pb-2">
-      {HIGHLIGHTS.map((h) => (
-        <div key={h.id} className="flex w-16 shrink-0 flex-col items-center gap-2">
-          <div className={`rounded-full p-[2.5px] ${BRAND_GRADIENT}`}>
-            <div className="rounded-full bg-white p-[2.5px]">
-              <div
-                className={`flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br text-2xl ${h.gradient}`}
-              >
-                {h.emoji}
-              </div>
-            </div>
-          </div>
-          <span className="truncate text-xs text-zinc-700">{h.label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Tabs() {
-  const tabBase = "flex flex-1 items-center justify-center py-3 text-zinc-500";
-  return (
-    <div className="mt-2 flex border-t border-zinc-200">
-      <button className={`${tabBase} border-t border-zinc-900 text-zinc-900`}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6">
-          <rect x="3" y="3" width="7.5" height="7.5" rx="1" />
-          <rect x="13.5" y="3" width="7.5" height="7.5" rx="1" />
-          <rect x="3" y="13.5" width="7.5" height="7.5" rx="1" />
-          <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1" />
-        </svg>
-      </button>
-      <button className={tabBase}>{icons.reel}</button>
-      <button className={tabBase}>{icons.heart}</button>
-    </div>
-  );
-}
-
-function PostGrid() {
-  return (
-    <div className="grid grid-cols-3 gap-1">
-      {POSTS.map((post) => (
-        <div
-          key={post.id}
-          className={`group relative aspect-square overflow-hidden bg-gradient-to-br ${post.gradient}`}
-        >
-          <span className="absolute inset-0 flex items-center justify-center text-5xl drop-shadow-sm transition-transform duration-300 group-hover:scale-110 sm:text-6xl">
-            {post.emoji}
-          </span>
-          {/* Hover overlay with likes / comments */}
-          <div className="absolute inset-0 flex items-center justify-center gap-5 bg-black/30 text-sm font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
-            <span className="flex items-center gap-1.5">
-              ❤️ {post.likes}
-            </span>
-            <span className="flex items-center gap-1.5">
-              💬 {post.comments}
-            </span>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function TopNav() {
-  return (
-    <header className="sticky top-0 z-10 hidden border-b border-zinc-200 bg-white/90 backdrop-blur md:block">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${BRAND_GRADIENT} text-white`}>
-            {icons.home}
-          </div>
-          <span className="text-xl font-semibold tracking-tight">Instagram</span>
-        </div>
-
-        {/* Search */}
-        <div className="flex w-64 items-center gap-2 rounded-lg bg-zinc-100 px-3 py-2 text-zinc-500">
-          {icons.search}
-          <span className="text-sm">Search</span>
-        </div>
-
-        {/* Actions */}
-        <nav className="flex items-center gap-5 text-zinc-800">
-          {icons.home}
-          {icons.messenger}
-          {icons.plus}
-          {icons.compass}
-          {icons.heart}
+    <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/90 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+        <Link href="/" className="text-lg font-bold tracking-tight">
+          AI 简历编辑器
+        </Link>
+        <nav className="flex items-center gap-3 text-sm">
+          <Link href="/sign-in" className="font-medium text-zinc-600 hover:text-zinc-900">
+            登录
+          </Link>
+          <Link
+            href="/editor"
+            className="rounded-lg bg-zinc-900 px-4 py-2 font-semibold text-white transition hover:bg-zinc-700"
+          >
+            免费开始
+          </Link>
         </nav>
       </div>
     </header>
   );
 }
 
-function BottomNav() {
-  const item = "flex flex-1 items-center justify-center py-3 text-zinc-800";
+function Hero() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-zinc-200 bg-white md:hidden">
-      <button className={item}>{icons.home}</button>
-      <button className={item}>{icons.search}</button>
-      <button className={item}>{icons.plus}</button>
-      <button className={item}>{icons.reel}</button>
-      <button className={item}>
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-sky-300 to-indigo-400 text-[9px] font-bold text-white">
-          JD
-        </div>
-      </button>
-    </nav>
+    <section className="mx-auto max-w-5xl px-4 py-20 text-center sm:py-28">
+      <h1 className="mx-auto max-w-3xl text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
+        粘贴职位描述，让 AI 把简历改写进
+        <span className="text-blue-600"> 面试官的筛选线</span>
+      </h1>
+      <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-600">
+        填好你的经历，一键针对目标 JD 生成带关键词与量化成果的版本，再导出成排版干净的 PDF。
+      </p>
+      <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+        <Link
+          href="/editor"
+          className="rounded-lg bg-blue-600 px-6 py-3 text-base font-semibold text-white transition hover:bg-blue-700"
+        >
+          免费开始制作
+        </Link>
+        <Link
+          href="#pricing"
+          className="rounded-lg border border-zinc-300 px-6 py-3 text-base font-semibold text-zinc-700 transition hover:bg-zinc-100"
+        >
+          查看价格
+        </Link>
+      </div>
+      <p className="mt-4 text-sm text-zinc-400">无需登录即可开始，导出时才需要账号</p>
+    </section>
   );
 }
 
-export default function Home() {
+function HowItWorks() {
+  const steps = [
+    { n: "1", title: "填简历", desc: "联系方式、总结、经历、教育、技能 + 照片，5 类固定字段。" },
+    { n: "2", title: "粘贴 JD", desc: "把目标职位描述贴进来，对每段经历点「AI 改写」。" },
+    { n: "3", title: "导出 PDF", desc: "一键生成 A4 排版干净的 PDF，直接投递。" },
+  ];
   return (
-    <div className="min-h-screen bg-white pb-16 text-zinc-900 md:pb-0">
-      <TopNav />
-      <main className="mx-auto max-w-4xl">
-        <ProfileHeader />
-        <StoryHighlights />
-        <Tabs />
-        <PostGrid />
-      </main>
-      <BottomNav />
-    </div>
+    <section className="border-t border-zinc-100 bg-zinc-50">
+      <div className="mx-auto max-w-5xl px-4 py-16">
+        <h2 className="text-center text-2xl font-bold sm:text-3xl">三步搞定</h2>
+        <div className="mt-10 grid gap-6 sm:grid-cols-3">
+          {steps.map((s) => (
+            <div key={s.n} className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-zinc-200">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                {s.n}
+              </div>
+              <h3 className="mt-4 font-semibold">{s.title}</h3>
+              <p className="mt-2 text-sm text-zinc-600">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Features() {
+  const items = [
+    {
+      title: "针对 JD 的关键词 + 量化改写",
+      desc: "把「负责过运营工作」改写成「主导年度活动，带来 40% 转化提升」，匹配招聘方筛词。",
+    },
+    {
+      title: "干净的 A4 简历模板",
+      desc: "一个专业、可读性强的模板，照片与字段排布整洁，HR 一眼扫到重点。",
+    },
+    {
+      title: "逐段改写，可控可重来",
+      desc: "每段经历单独改写，不满意就点「重新生成」，不会整份推翻。",
+    },
+  ];
+  return (
+    <section className="mx-auto max-w-5xl px-4 py-16">
+      <h2 className="text-center text-2xl font-bold sm:text-3xl">为什么用它</h2>
+      <div className="mt-10 grid gap-6 sm:grid-cols-3">
+        {items.map((f) => (
+          <div key={f.title} className="rounded-xl p-6 ring-1 ring-zinc-200">
+            <h3 className="font-semibold">{f.title}</h3>
+            <p className="mt-2 text-sm text-zinc-600">{f.desc}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Pricing() {
+  return (
+    <section id="pricing" className="border-t border-zinc-100 bg-zinc-50">
+      <div className="mx-auto max-w-5xl px-4 py-16">
+        <h2 className="text-center text-2xl font-bold sm:text-3xl">价格</h2>
+        <div className="mx-auto mt-10 grid max-w-2xl gap-6 sm:grid-cols-2">
+          <div className="rounded-xl bg-white p-6 ring-1 ring-zinc-200">
+            <h3 className="font-semibold">免费</h3>
+            <p className="mt-2 text-3xl font-bold">¥0</p>
+            <ul className="mt-4 space-y-2 text-sm text-zinc-600">
+              <li>1 份简历</li>
+              <li>2 次 AI 改写</li>
+              <li>2 次 PDF 下载</li>
+            </ul>
+            <Link
+              href="/editor"
+              className="mt-6 block rounded-lg border border-zinc-300 px-4 py-2 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+            >
+              免费开始
+            </Link>
+          </div>
+          <div className="relative rounded-xl bg-zinc-900 p-6 text-white ring-1 ring-zinc-900">
+            <span className="absolute right-4 top-4 rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold">
+              推荐
+            </span>
+            <h3 className="font-semibold">付费版</h3>
+            <p className="mt-2 text-3xl font-bold">
+              ¥19<span className="text-sm font-normal text-zinc-400">/月</span>
+            </p>
+            <ul className="mt-4 space-y-2 text-sm text-zinc-300">
+              <li>简历数量不限</li>
+              <li>AI 改写不限次数</li>
+              <li>PDF 下载不限次数</li>
+              <li>随时取消</li>
+            </ul>
+            <Link
+              href="/editor"
+              className="mt-6 block rounded-lg bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              升级付费版
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="border-t border-zinc-200">
+      <div className="mx-auto max-w-5xl px-4 py-8 text-center text-sm text-zinc-400">
+        AI 简历编辑器 · 中文简历制作与 JD 智能改写
+      </div>
+    </footer>
   );
 }
