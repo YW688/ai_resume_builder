@@ -53,6 +53,8 @@ claude
 | `.claude/settings.json` | 固定 qwen3.8-max + DashScope 端点 + 权限白名单 |
 | `.claude/settings.local.json` | 本机密钥（gitignored，由 setup 脚本生成） |
 | `.claude/skills/hero-visual/SKILL.md` | 技能入口：阶段表、硬规则、命令、子代理分工 |
+| `.claude/skills/cost-guard/SKILL.md` | 付费生成前的成本闸门：先算钱、先试水、确认后再 `--run` |
+| `docs/PROJECT_RETRO_2026-10-20.md` | 项目复盘：花销构成、踩坑、省钱四层策略、部署清单、台账模板 |
 | `.claude/commands/{hero-status,hero-next,hero-verify}.md` | 三个斜杠命令 |
 | `.claude/agents/{qwen-image-artist,qwen-video-artist,hero-frontend,visual-qa}.md` | 四个子代理 |
 | `docs/hero-visual/00-INDEX.md` | 本文件 |
