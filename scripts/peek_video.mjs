@@ -14,11 +14,12 @@ const types = { ".mp4": "video/mp4", ".html": "text/html", ".jpg": "image/jpeg" 
 
 const server = http.createServer((req, res) => {
   const url = req.url === "/" || req.url === "/peek.html" ? "/peek.html" : req.url.split("?")[0];
-  const file = url === "/peek.html" ? null : path.join(dir, decodeURIComponent(url));
+  // 统一用固定路由 /video.mp4 提供视频，避免中文/空格文件名在浏览器端被二次编码导致 404
+  const file = url === "/peek.html" ? null : url === "/video.mp4" ? videoPath : path.join(dir, decodeURIComponent(url));
   if (url === "/peek.html") {
     res.writeHead(200, { "Content-Type": "text/html" });
     res.end(`<!doctype html><body style="margin:0;background:#000">
-<video id="v" src="${path.basename(videoPath)}" muted playsinline preload="auto"></video>
+<video id="v" src="/video.mp4" muted playsinline preload="auto"></video>
 <canvas id="c" style="display:none"></canvas></body>`);
     return;
   }
@@ -54,7 +55,7 @@ const server = http.createServer((req, res) => {
 
 await new Promise((r) => server.listen(8791, "127.0.0.1", r));
 
-const browser = await chromium.launch({ channel: "chromium" });
+const browser = await chromium.launch({ channel: process.env.PEEK_CHANNEL || "msedge" });
 const page = await browser.newPage();
 await page.goto("http://127.0.0.1:8791/peek.html");
 

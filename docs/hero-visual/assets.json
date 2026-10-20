@@ -1,0 +1,506 @@
+{
+  "version": 2,
+  "generatedAt": "2026-10-20T09:25:54.000Z",
+  "source": "E:/Harness_workplaces/提示词优化/AI简历网站_Hero视觉提示词总方案.md（千问原生 API 版 v2.0）",
+  "toolchain": {
+    "claudeCode": "qwen3.8-max",
+    "claudeCodeBaseUrl": "https://dashscope.aliyuncs.com/apps/anthropic",
+    "image": {
+      "model": "qwen-image-3.0-pro",
+      "fallbackModels": [
+        "qwen-image-3.0",
+        "qwen-image-2.1-pro"
+      ],
+      "endpoint": "https://dashscope.aliyuncs.com/api/v1/services/aigc/image-generation/generation",
+      "pollEndpoint": "https://dashscope.aliyuncs.com/api/v1/tasks/{task_id}",
+      "protocol": "DashScope async",
+      "sizeNote": "assets.json 里 size 存人读的 宽x高；请求时由脚本转成 DashScope 要求的 宽*高"
+    },
+    "video": {
+      "model": "wan2.7-i2v",
+      "t2vModel": "wan2.7-t2v",
+      "endpoint": "https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/video-synthesis",
+      "pollEndpoint": "https://dashscope.aliyuncs.com/api/v1/tasks/{task_id}",
+      "protocol": "DashScope async"
+    },
+    "authEnv": "DASHSCOPE_API_KEY",
+    "priceNote": "计费以百炼控制台价格页为准；图像按输出像素档、视频按秒×分辨率档；本文不写价格数字"
+  },
+  "paths": {
+    "referenceImage": "design/UI_ref.jpg",
+    "referenceVideo": "design/滑板少女.mp4",
+    "cleanFrames": "design/source/frames",
+    "characterRef": "design/source/refs/character_front.png",
+    "imageMasters": "design/source/qwen",
+    "videoMasters": "design/source/wan",
+    "webHero": "public/hero",
+    "webArt": "public/art"
+  },
+  "stages": [
+    {
+      "id": "S0",
+      "name": "环境与 API 自检",
+      "gate": "doctor.cmd 无 FAIL；setup-claude.cmd PASS"
+    },
+    {
+      "id": "S1",
+      "name": "参考素材整理",
+      "gate": "design/UI_ref.jpg + design/滑板少女.mp4 就位"
+    },
+    {
+      "id": "S2",
+      "name": "角色卡",
+      "gate": "客户确认 character_front.png"
+    },
+    {
+      "id": "S3",
+      "name": "12 张图（7 网页 + 4 关键帧 + 角色卡）",
+      "gate": "11 张（角色卡外）全过 10 秒验收"
+    },
+    {
+      "id": "S4",
+      "name": "万相 4 段视频",
+      "gate": "1080P、时长 5/6/5/5s、首帧=关键帧"
+    },
+    {
+      "id": "S5",
+      "name": "剪辑 / 导出",
+      "gate": "15–18s、无音轨、H.264、循环无跳帧"
+    },
+    {
+      "id": "S6",
+      "name": "前端集成",
+      "gate": "npm run build 通过 + 三档截图"
+    },
+    {
+      "id": "S7",
+      "name": "总验收",
+      "gate": "05-acceptance.md 全过"
+    }
+  ],
+  "assets": [
+    {
+      "id": "qwen-00-character",
+      "kind": "image",
+      "stage": "S2",
+      "title": "角色卡（4 seed 选 1，定脸）",
+      "prompt": "docs/hero-visual/prompts/image/00-character.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/00-character.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1024x1024",
+      "n": 1,
+      "seeds": [
+        20261020,
+        20261021,
+        20261022,
+        20261023
+      ],
+      "seed": 20261020,
+      "promptExtend": true,
+      "watermark": false,
+      "refs": [],
+      "master": "design/source/qwen/001-character_s<seed>.png",
+      "webOutputs": [],
+      "dependsOn": [],
+      "gate": "S2：客户确认后另存 design/source/refs/character_front.png，未确认不得进入 S3",
+      "note": "T2I 无参考图；4 个 seed 各出 1 张（001-character_s20261020..001-character_s20261023.png），人工选 1 张另存 character_front.png（master 中的 <seed> 由脚本按 seeds 替换）。",
+      "status": "pending"
+    },
+    {
+      "id": "qwen-01",
+      "kind": "image",
+      "stage": "S3",
+      "title": "hero 海报（poster / OG 兜底）",
+      "prompt": "docs/hero-visual/prompts/image/01-hero-poster.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/01-hero-poster.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1920x1080",
+      "n": 1,
+      "seed": 20261101,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_3_t6.jpg"
+      ],
+      "master": "design/source/qwen/002-hero-poster_s20261101.png",
+      "webOutputs": [
+        {
+          "path": "public/hero/poster.jpg",
+          "note": "仅兜底；poster 优先用成片 B 段 t≈6.5s 抽帧"
+        },
+        {
+          "path": "public/og-hero.jpg",
+          "note": "1200x630 中心裁切；分享标题由前端叠字，不生成在画面里"
+        }
+      ],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "I2I 双参考：第 1 张锁脸与服装，第 2 张锁构图/机位；refs 均为待生成——character_front.png 由 S2 定稿产出、design/source/frames/ref_3_t6.jpg 由 S1 抽帧产出（design/frames/ 已有同名旧抽帧可先复制）。",
+      "status": "pending"
+    },
+    {
+      "id": "qwen-02",
+      "kind": "image",
+      "stage": "S3",
+      "title": "功能图 · AI 解析简历",
+      "prompt": "docs/hero-visual/prompts/image/02-feature-parse.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/02-feature-parse.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1920x1080",
+      "n": 1,
+      "seed": 20261102,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_2_t4.jpg"
+      ],
+      "master": "design/source/qwen/003-feature-parse_s20261102.png",
+      "webOutputs": [
+        {
+          "path": "public/art/feature-parse.jpg",
+          "note": "卡片内显示约 720x405，导出时压到 1440x810 亦可"
+        }
+      ],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "玻璃面板保持空白，任何可读文字都算失败；面板文字由前端/Figma 叠加。refs 均为待生成：角色卡由 S2、ref_2_t4.jpg 由 S1 抽帧产出。",
+      "status": "pending"
+    },
+    {
+      "id": "qwen-03",
+      "kind": "image",
+      "stage": "S3",
+      "title": "功能图 · 模板 / 版式（3 块玻璃面板）",
+      "prompt": "docs/hero-visual/prompts/image/03-feature-templates.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/03-feature-templates.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1920x1080",
+      "n": 1,
+      "seed": 20261103,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_1_t2.jpg"
+      ],
+      "master": "design/source/qwen/004-feature-templates_s20261103.png",
+      "webOutputs": [
+        {
+          "path": "public/art/feature-templates.jpg",
+          "note": "面板数量必须是 3；数量错了重跑，不做后期擦除"
+        }
+      ],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "三块面板是硬约束；n 可临时提到 2 选一张，但只保留下载的那张。refs 均为待生成：角色卡由 S2、ref_1_t2.jpg 由 S1 抽帧产出。",
+      "status": "pending"
+    },
+    {
+      "id": "qwen-04",
+      "kind": "image",
+      "stage": "S3",
+      "title": "功能图 · 职业未来",
+      "prompt": "docs/hero-visual/prompts/image/04-feature-future.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/04-feature-future.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1920x1080",
+      "n": 1,
+      "seed": 20261104,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/frames/ref_4_t8.jpg"
+      ],
+      "master": "design/source/qwen/005-feature-future_s20261104.png",
+      "webOutputs": [
+        {
+          "path": "public/art/feature-future.jpg",
+          "note": "左上留白直接压标题与 CTA，导出前测一次天空亮度 70%-85%"
+        }
+      ],
+      "dependsOn": [],
+      "gate": null,
+      "note": "I2I 单参考（背面视角，不需要脸部参考）；人物一致性靠角色卡在 S2 定稿后目视比对。ref_4_t8.jpg 由 S1 抽帧产出（待生成，design/frames 有同名旧抽帧可复制）。",
+      "status": "pending"
+    },
+    {
+      "id": "qwen-05",
+      "kind": "image",
+      "stage": "S3",
+      "title": "About 人像（抱滑板，逆光）",
+      "prompt": "docs/hero-visual/prompts/image/05-about-portrait.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/05-about-portrait.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1152x1536",
+      "n": 1,
+      "seed": 20261105,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png"
+      ],
+      "master": "design/source/qwen/006-about-portrait_s20261105.png",
+      "webOutputs": [
+        {
+          "path": "public/art/about-portrait.jpg",
+          "note": "3:4；移动端容器按 object-fit:cover 裁切"
+        }
+      ],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "I2I 单参考锁脸；这张是客户“认人”的图，脸不对回 S2 重选角色卡，不单独硬调。character_front.png 由 S2 定稿产出（待生成）。",
+      "status": "pending"
+    },
+    {
+      "id": "qwen-06",
+      "kind": "image",
+      "stage": "S3",
+      "title": "UI 元素贴纸页（切图用）",
+      "prompt": "docs/hero-visual/prompts/image/06-ui-stickers.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/06-ui-stickers.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1024x1024",
+      "n": 1,
+      "seed": 20261106,
+      "promptExtend": true,
+      "watermark": false,
+      "refs": [],
+      "master": "design/source/qwen/007-ui-stickers_s20261106.png",
+      "webOutputs": [
+        {
+          "path": "public/art/ui-kit.png",
+          "note": "整页切图；单元素导出 512x512（@2x）"
+        }
+      ],
+      "dependsOn": [],
+      "gate": null,
+      "note": "T2I 无参考图（色彩参考 design/UI_ref.jpg，人工确认）；网格不听话时逐元素单独生成再拼。",
+      "status": "pending"
+    },
+    {
+      "id": "qwen-07",
+      "kind": "image",
+      "stage": "S3",
+      "title": "移动端封面（9:16）",
+      "prompt": "docs/hero-visual/prompts/image/07-mobile-cover.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/07-mobile-cover.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1080x1920",
+      "n": 1,
+      "seed": 20261107,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/frames/ref_4_t8.jpg"
+      ],
+      "master": "design/source/qwen/008-mobile-cover_s20261107.png",
+      "webOutputs": [
+        {
+          "path": "public/hero/mobile-cover.jpg",
+          "note": "9:16；上方 30%-35% 留 logo，下方 25% 压毛玻璃卡片"
+        }
+      ],
+      "dependsOn": [],
+      "gate": null,
+      "note": "I2I 单参考（背面视角，原生竖屏重绘面积最小）；与 hero 海报同一天同一时刻的云型/太阳高度需目视比对。ref_4_t8.jpg 由 S1 抽帧产出（待生成）。",
+      "status": "pending"
+    },
+    {
+      "id": "qwen-kf-a",
+      "kind": "image",
+      "stage": "S3",
+      "title": "视频关键帧 A（Shot A 首帧，16:9）",
+      "prompt": "docs/hero-visual/prompts/image/10-keyframe-a.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/10-keyframe-a.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1280x720",
+      "n": 1,
+      "seed": 20261108,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_1_t2.jpg"
+      ],
+      "master": "design/source/qwen/009-keyframe-a_s20261108.png",
+      "webOutputs": [],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "S3 生成、S4 消费：wan-shot-a 的 first_frame；精确 16:9，不透明，无音频概念。refs 均为待生成：角色卡由 S2、ref_1_t2.jpg 由 S1 抽帧产出。",
+      "status": "pending"
+    },
+    {
+      "id": "qwen-kf-b",
+      "kind": "image",
+      "stage": "S3",
+      "title": "视频关键帧 B（Shot B 首帧，16:9）",
+      "prompt": "docs/hero-visual/prompts/image/11-keyframe-b.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/11-keyframe-b.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1280x720",
+      "n": 1,
+      "seed": 20261109,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_2_t4.jpg"
+      ],
+      "master": "design/source/qwen/010-keyframe-b_s20261109.png",
+      "webOutputs": [],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "S3 生成、S4 消费：wan-shot-b 的 first_frame；机位比 A 更高更远。refs 均为待生成：角色卡由 S2、ref_2_t4.jpg 由 S1 抽帧产出。",
+      "status": "pending"
+    },
+    {
+      "id": "qwen-kf-c",
+      "kind": "image",
+      "stage": "S3",
+      "title": "视频关键帧 C（Shot C 首帧，16:9）",
+      "prompt": "docs/hero-visual/prompts/image/12-keyframe-c.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/12-keyframe-c.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1280x720",
+      "n": 1,
+      "seed": 20261110,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_3_t6.jpg"
+      ],
+      "master": "design/source/qwen/011-keyframe-c_s20261110.png",
+      "webOutputs": [],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "S3 生成、S4 消费：wan-shot-c 的 first_frame；侧脸回眸、天空占比更大。refs 均为待生成：角色卡由 S2、ref_3_t6.jpg 由 S1 抽帧产出。",
+      "status": "pending"
+    },
+    {
+      "id": "qwen-kf-sky",
+      "kind": "image",
+      "stage": "S3",
+      "title": "天空关键帧（Loop 首尾帧，16:9）",
+      "prompt": "docs/hero-visual/prompts/image/13-keyframe-sky.pos.txt",
+      "negative": "docs/hero-visual/prompts/image/13-keyframe-sky.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1280x720",
+      "n": 1,
+      "seed": 20261111,
+      "promptExtend": true,
+      "watermark": false,
+      "refs": [],
+      "master": "design/source/qwen/012-keyframe-sky_s20261111.png",
+      "webOutputs": [],
+      "dependsOn": [],
+      "gate": null,
+      "note": "T2I 纯天空；S4 的 wan-loop 首帧与尾帧都指向本图（首尾同图）；中心低对比便于压玻璃卡片。",
+      "status": "pending"
+    },
+    {
+      "id": "wan-shot-a",
+      "kind": "video",
+      "stage": "S4",
+      "title": "Shot A 延续：接关键帧 A，低机位背后跟拍继续下坡",
+      "prompt": "docs/hero-visual/prompts/video/shot-a.pos.txt",
+      "negative": "docs/hero-visual/prompts/video/shot-a.neg.txt",
+      "model": "wan2.7-i2v",
+      "resolution": "1080P",
+      "duration": 5,
+      "promptExtend": false,
+      "seed": 20261201,
+      "firstFrame": "design/source/qwen/009-keyframe-a_s20261108.png",
+      "lastFrame": null,
+      "master": "design/source/wan/shot-a_1080p_5s_s20261201.mp4",
+      "webOutputs": [],
+      "dependsOn": [
+        "qwen-kf-a"
+      ],
+      "note": "成片时间线 0~5s；首帧必须精确 16:9（1280x720），宽高比以首帧为准",
+      "status": "pending"
+    },
+    {
+      "id": "wan-shot-b",
+      "kind": "video",
+      "stage": "S4",
+      "title": "Shot B 展开：单次连续升高 + 后拉 + 左移，宽幅海天全景",
+      "prompt": "docs/hero-visual/prompts/video/shot-b.pos.txt",
+      "negative": "docs/hero-visual/prompts/video/shot-b.neg.txt",
+      "model": "wan2.7-i2v",
+      "resolution": "1080P",
+      "duration": 6,
+      "promptExtend": false,
+      "seed": 20261202,
+      "firstFrame": "design/source/qwen/010-keyframe-b_s20261109.png",
+      "lastFrame": null,
+      "master": "design/source/wan/shot-b_1080p_6s_s20261202.mp4",
+      "webOutputs": [],
+      "dependsOn": [
+        "qwen-kf-b"
+      ],
+      "note": "成片时间线 4.5~10.5s（与 A 尾 0.5s 叠化）；首帧必须精确 16:9（1280x720）",
+      "status": "pending"
+    },
+    {
+      "id": "wan-shot-c",
+      "kind": "video",
+      "stage": "S4",
+      "title": "Shot C 收尾：慢速侧身回眸 → 镜头上摇到纯天空",
+      "prompt": "docs/hero-visual/prompts/video/shot-c.pos.txt",
+      "negative": "docs/hero-visual/prompts/video/shot-c.neg.txt",
+      "model": "wan2.7-i2v",
+      "resolution": "1080P",
+      "duration": 5,
+      "promptExtend": false,
+      "seed": 20261203,
+      "firstFrame": "design/source/qwen/011-keyframe-c_s20261110.png",
+      "lastFrame": null,
+      "master": "design/source/wan/shot-c_1080p_5s_s20261203.mp4",
+      "webOutputs": [],
+      "dependsOn": [
+        "qwen-kf-c"
+      ],
+      "note": "成片时间线 10.0~15.0s（与 B 尾 0.5s 叠化）；尾段天空占 ≥80% 供循环叠回开头；首帧必须精确 16:9（1280x720）",
+      "status": "pending"
+    },
+    {
+      "id": "wan-loop",
+      "kind": "video",
+      "stage": "S4",
+      "title": "天空无缝 loop：首尾帧同为天空关键帧，锁定机位纯天空",
+      "prompt": "docs/hero-visual/prompts/video/loop-sky.pos.txt",
+      "negative": "docs/hero-visual/prompts/video/loop-sky.neg.txt",
+      "model": "wan2.7-i2v",
+      "resolution": "1080P",
+      "duration": 5,
+      "promptExtend": false,
+      "seed": 20261204,
+      "firstFrame": "design/source/qwen/012-keyframe-sky_s20261111.png",
+      "lastFrame": "design/source/qwen/012-keyframe-sky_s20261111.png",
+      "master": "design/source/wan/loop-sky_1080p_5s_s20261204.mp4",
+      "webOutputs": [],
+      "dependsOn": [
+        "qwen-kf-sky"
+      ],
+      "note": "首帧=尾帧=天空关键帧（首尾帧闭环）；用于成片收尾 2s、prefers-reduced-motion 静态兜底与加载占位；备用纯文生视频走 wan2.7-t2v + ratio 16:9，提示词见 prompts/video/loop-sky-t2v.pos.txt",
+      "status": "pending"
+    }
+  ]
+}

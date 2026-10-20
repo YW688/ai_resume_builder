@@ -1,0 +1,327 @@
+{
+  "assets": [
+    {
+      "id": "qwen-00-character",
+      "kind": "image",
+      "stage": "S2",
+      "title": "角色卡（4 seed 选 1，定脸）",
+      "prompt": "prompts/image/00-character.pos.txt",
+      "negative": "prompts/image/00-character.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1024x1024",
+      "n": 1,
+      "seeds": [
+        20261020,
+        20261021,
+        20261022,
+        20261023
+      ],
+      "seed": 20261020,
+      "promptExtend": true,
+      "watermark": false,
+      "refs": [],
+      "master": "design/source/qwen/001-character_s<seed>.png",
+      "webOutputs": [],
+      "dependsOn": [],
+      "gate": "S2：客户确认后另存 design/source/refs/character_front.png，未确认不得进入 S3",
+      "note": "T2I 无参考图；4 个 seed 各出 1 张（001-character_s20261020..001-character_s20261023.png），人工选 1 张另存 character_front.png（master 中的 <seed> 由脚本按 seeds 替换）。"
+    },
+    {
+      "id": "qwen-01",
+      "kind": "image",
+      "stage": "S3",
+      "title": "hero 海报（poster / OG 兜底）",
+      "prompt": "prompts/image/01-hero-poster.pos.txt",
+      "negative": "prompts/image/01-hero-poster.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1920x1080",
+      "n": 1,
+      "seed": 20261101,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_3_t6.jpg"
+      ],
+      "master": "design/source/qwen/002-hero-poster_s20261101.png",
+      "webOutputs": [
+        {
+          "path": "public/hero/poster.jpg",
+          "note": "仅兜底；poster 优先用成片 B 段 t≈6.5s 抽帧"
+        },
+        {
+          "path": "public/og-hero.jpg",
+          "note": "1200x630 中心裁切；分享标题由前端叠字，不生成在画面里"
+        }
+      ],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "I2I 双参考：第 1 张锁脸与服装，第 2 张锁构图/机位；refs 均为待生成——character_front.png 由 S2 定稿产出、design/source/frames/ref_3_t6.jpg 由 S1 抽帧产出（design/frames/ 已有同名旧抽帧可先复制）。"
+    },
+    {
+      "id": "qwen-02",
+      "kind": "image",
+      "stage": "S3",
+      "title": "功能图 · AI 解析简历",
+      "prompt": "prompts/image/02-feature-parse.pos.txt",
+      "negative": "prompts/image/02-feature-parse.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1920x1080",
+      "n": 1,
+      "seed": 20261102,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_2_t4.jpg"
+      ],
+      "master": "design/source/qwen/003-feature-parse_s20261102.png",
+      "webOutputs": [
+        {
+          "path": "public/art/feature-parse.jpg",
+          "note": "卡片内显示约 720x405，导出时压到 1440x810 亦可"
+        }
+      ],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "玻璃面板保持空白，任何可读文字都算失败；面板文字由前端/Figma 叠加。refs 均为待生成：角色卡由 S2、ref_2_t4.jpg 由 S1 抽帧产出。"
+    },
+    {
+      "id": "qwen-03",
+      "kind": "image",
+      "stage": "S3",
+      "title": "功能图 · 模板 / 版式（3 块玻璃面板）",
+      "prompt": "prompts/image/03-feature-templates.pos.txt",
+      "negative": "prompts/image/03-feature-templates.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1920x1080",
+      "n": 1,
+      "seed": 20261103,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_1_t2.jpg"
+      ],
+      "master": "design/source/qwen/004-feature-templates_s20261103.png",
+      "webOutputs": [
+        {
+          "path": "public/art/feature-templates.jpg",
+          "note": "面板数量必须是 3；数量错了重跑，不做后期擦除"
+        }
+      ],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "三块面板是硬约束；n 可临时提到 2 选一张，但只保留下载的那张。refs 均为待生成：角色卡由 S2、ref_1_t2.jpg 由 S1 抽帧产出。"
+    },
+    {
+      "id": "qwen-04",
+      "kind": "image",
+      "stage": "S3",
+      "title": "功能图 · 职业未来",
+      "prompt": "prompts/image/04-feature-future.pos.txt",
+      "negative": "prompts/image/04-feature-future.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1920x1080",
+      "n": 1,
+      "seed": 20261104,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/frames/ref_4_t8.jpg"
+      ],
+      "master": "design/source/qwen/005-feature-future_s20261104.png",
+      "webOutputs": [
+        {
+          "path": "public/art/feature-future.jpg",
+          "note": "左上留白直接压标题与 CTA，导出前测一次天空亮度 70%-85%"
+        }
+      ],
+      "dependsOn": [],
+      "gate": null,
+      "note": "I2I 单参考（背面视角，不需要脸部参考）；人物一致性靠角色卡在 S2 定稿后目视比对。ref_4_t8.jpg 由 S1 抽帧产出（待生成，design/frames 有同名旧抽帧可复制）。"
+    },
+    {
+      "id": "qwen-05",
+      "kind": "image",
+      "stage": "S3",
+      "title": "About 人像（抱滑板，逆光）",
+      "prompt": "prompts/image/05-about-portrait.pos.txt",
+      "negative": "prompts/image/05-about-portrait.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1152x1536",
+      "n": 1,
+      "seed": 20261105,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png"
+      ],
+      "master": "design/source/qwen/006-about-portrait_s20261105.png",
+      "webOutputs": [
+        {
+          "path": "public/art/about-portrait.jpg",
+          "note": "3:4；移动端容器按 object-fit:cover 裁切"
+        }
+      ],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "I2I 单参考锁脸；这张是客户“认人”的图，脸不对回 S2 重选角色卡，不单独硬调。character_front.png 由 S2 定稿产出（待生成）。"
+    },
+    {
+      "id": "qwen-06",
+      "kind": "image",
+      "stage": "S3",
+      "title": "UI 元素贴纸页（切图用）",
+      "prompt": "prompts/image/06-ui-stickers.pos.txt",
+      "negative": "prompts/image/06-ui-stickers.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1024x1024",
+      "n": 1,
+      "seed": 20261106,
+      "promptExtend": true,
+      "watermark": false,
+      "refs": [],
+      "master": "design/source/qwen/007-ui-stickers_s20261106.png",
+      "webOutputs": [
+        {
+          "path": "public/art/ui-kit.png",
+          "note": "整页切图；单元素导出 512x512（@2x）"
+        }
+      ],
+      "dependsOn": [],
+      "gate": null,
+      "note": "T2I 无参考图（色彩参考 design/UI_ref.jpg，人工确认）；网格不听话时逐元素单独生成再拼。"
+    },
+    {
+      "id": "qwen-07",
+      "kind": "image",
+      "stage": "S3",
+      "title": "移动端封面（9:16）",
+      "prompt": "prompts/image/07-mobile-cover.pos.txt",
+      "negative": "prompts/image/07-mobile-cover.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1080x1920",
+      "n": 1,
+      "seed": 20261107,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/frames/ref_4_t8.jpg"
+      ],
+      "master": "design/source/qwen/008-mobile-cover_s20261107.png",
+      "webOutputs": [
+        {
+          "path": "public/hero/mobile-cover.jpg",
+          "note": "9:16；上方 30%-35% 留 logo，下方 25% 压毛玻璃卡片"
+        }
+      ],
+      "dependsOn": [],
+      "gate": null,
+      "note": "I2I 单参考（背面视角，原生竖屏重绘面积最小）；与 hero 海报同一天同一时刻的云型/太阳高度需目视比对。ref_4_t8.jpg 由 S1 抽帧产出（待生成）。"
+    },
+    {
+      "id": "qwen-kf-a",
+      "kind": "image",
+      "stage": "S3",
+      "title": "视频关键帧 A（Shot A 首帧，16:9）",
+      "prompt": "prompts/image/10-keyframe-a.pos.txt",
+      "negative": "prompts/image/10-keyframe-a.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1280x720",
+      "n": 1,
+      "seed": 20261108,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_1_t2.jpg"
+      ],
+      "master": "design/source/qwen/009-keyframe-a_s20261108.png",
+      "webOutputs": [],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "S3 生成、S4 消费：wan-shot-a 的 first_frame；精确 16:9，不透明，无音频概念。refs 均为待生成：角色卡由 S2、ref_1_t2.jpg 由 S1 抽帧产出。"
+    },
+    {
+      "id": "qwen-kf-b",
+      "kind": "image",
+      "stage": "S3",
+      "title": "视频关键帧 B（Shot B 首帧，16:9）",
+      "prompt": "prompts/image/11-keyframe-b.pos.txt",
+      "negative": "prompts/image/11-keyframe-b.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1280x720",
+      "n": 1,
+      "seed": 20261109,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_2_t4.jpg"
+      ],
+      "master": "design/source/qwen/010-keyframe-b_s20261109.png",
+      "webOutputs": [],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "S3 生成、S4 消费：wan-shot-b 的 first_frame；机位比 A 更高更远。refs 均为待生成：角色卡由 S2、ref_2_t4.jpg 由 S1 抽帧产出。"
+    },
+    {
+      "id": "qwen-kf-c",
+      "kind": "image",
+      "stage": "S3",
+      "title": "视频关键帧 C（Shot C 首帧，16:9）",
+      "prompt": "prompts/image/12-keyframe-c.pos.txt",
+      "negative": "prompts/image/12-keyframe-c.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1280x720",
+      "n": 1,
+      "seed": 20261110,
+      "promptExtend": false,
+      "watermark": false,
+      "refs": [
+        "design/source/refs/character_front.png",
+        "design/source/frames/ref_3_t6.jpg"
+      ],
+      "master": "design/source/qwen/011-keyframe-c_s20261110.png",
+      "webOutputs": [],
+      "dependsOn": [
+        "qwen-00-character"
+      ],
+      "gate": null,
+      "note": "S3 生成、S4 消费：wan-shot-c 的 first_frame；侧脸回眸、天空占比更大。refs 均为待生成：角色卡由 S2、ref_3_t6.jpg 由 S1 抽帧产出。"
+    },
+    {
+      "id": "qwen-kf-sky",
+      "kind": "image",
+      "stage": "S3",
+      "title": "天空关键帧（Loop 首尾帧，16:9）",
+      "prompt": "prompts/image/13-keyframe-sky.pos.txt",
+      "negative": "prompts/image/13-keyframe-sky.neg.txt",
+      "model": "qwen-image-3.0-pro",
+      "size": "1280x720",
+      "n": 1,
+      "seed": 20261111,
+      "promptExtend": true,
+      "watermark": false,
+      "refs": [],
+      "master": "design/source/qwen/012-keyframe-sky_s20261111.png",
+      "webOutputs": [],
+      "dependsOn": [],
+      "gate": null,
+      "note": "T2I 纯天空；S4 的 wan-loop 首帧与尾帧都指向本图（首尾同图）；中心低对比便于压玻璃卡片。"
+    }
+  ]
+}

@@ -1,0 +1,230 @@
+{
+  "assets": [
+    {
+      "id": "vid-shot-a",
+      "kind": "video",
+      "title": "Shot A 延续：接源片尾部，低机位背后跟拍继续下坡",
+      "stage": "S4",
+      "prompt": "prompts/comfy/shot-a.pos.txt",
+      "negative": "prompts/comfy/shot-a.neg.txt",
+      "params": {
+        "model": "Wan2.2 TI2V-5B（fp8 wan2.2_ti2v_5B_fp8_scaled 或 GGUF Q5_K_M；VAE 用 wan2.2_vae.safetensors）",
+        "width": 960,
+        "height": 544,
+        "frames": 121,
+        "fps": 24,
+        "seed": 20261020,
+        "duration": 5.04,
+        "steps": 28,
+        "cfg": 5.0,
+        "sampler": "uni_pc",
+        "scheduler": "simple",
+        "shift": 8.0,
+        "denoise": 1.0,
+        "upscale": "Real-ESRGAN 4x（anime 6B，逐帧）→ Lanczos 降采样 1920×1080"
+      },
+      "inputs": [
+        "design/source/frames/clean/A_start_16x9.png"
+      ],
+      "master": "design/source/wan/shot-a_v1_960x544_s20261020.mp4",
+      "webOutputs": [
+        {
+          "path": "public/hero/hero.mp4",
+          "size": "1920x1080",
+          "note": "成片（A+B+C 拼接 + 循环叠化，§9）1080p 网页版主源；母版另存 design/source/wan/hero-1080-24fps-master.mp4"
+        },
+        {
+          "path": "public/hero/hero-720p.mp4",
+          "size": "1280x720",
+          "note": "由 1080p 成片降采样；项目沿用现有文件名，源方案未单列该档，码率待确认（按 1080p 网页档同比例收敛）"
+        },
+        {
+          "path": "public/hero/hero-9x16.mp4",
+          "size": "1080x1920",
+          "note": "移动端：源片 9:16 裁切 + 设计层（§10 策略 B），非本镜头直接产物"
+        },
+        {
+          "path": "public/hero/hero-1080.webm",
+          "size": "1920x1080",
+          "note": "VP9 兜底"
+        },
+        {
+          "path": "public/hero/hero-1080.av1.webm",
+          "size": "1920x1080",
+          "note": "AV1 兜底（可选，<source> 第一位）"
+        }
+      ],
+      "gate": "主体中心 x 62%~82%、不进中心安全区；首尾亮度差 ≤3%；无文字/水印",
+      "dependsOn": []
+    },
+    {
+      "id": "vid-shot-b",
+      "kind": "video",
+      "title": "Shot B 展开：侧移 + 升高拉远，宽幅海天全景",
+      "stage": "S4",
+      "prompt": "prompts/comfy/shot-b.pos.txt",
+      "negative": "prompts/comfy/shot-b.neg.txt",
+      "params": {
+        "model": "Wan2.2 TI2V-5B（同 Shot A）",
+        "width": 960,
+        "height": 544,
+        "frames": 145,
+        "fps": 24,
+        "seed": 20261021,
+        "duration": 6.04,
+        "steps": 28,
+        "cfg": 5.0,
+        "sampler": "uni_pc",
+        "scheduler": "simple",
+        "shift": 8.0,
+        "denoise": 1.0,
+        "upscale": "Real-ESRGAN 4x → 1920×1080（同链路 §7.1）"
+      },
+      "inputs": [
+        "design/source/wan/shot-a_v1_960x544_s20261020.mp4"
+      ],
+      "master": "design/source/wan/shot-b_v1_960x544_s20261021.mp4",
+      "webOutputs": [
+        {
+          "path": "public/hero/poster.jpg",
+          "size": "1920x1080",
+          "note": "从成片 t≈6.5 s（B 段中段）抽帧，JPEG q82/AVIF，≤180 KB；另出 1080×1920 移动版"
+        }
+      ],
+      "gate": "少女 x 66%~78%、y 72%~92%；地平线 y 66%~70%；中心 60%×50% 只剩天空/云/雾化海面；145 帧尾段崩坏则退 121 帧 + RIFE 0.85×",
+      "dependsOn": [
+        "vid-shot-a"
+      ]
+    },
+    {
+      "id": "vid-shot-c",
+      "kind": "video",
+      "title": "Shot C 收尾/回环：慢动作侧身回眸 → 镜头上摇到天空",
+      "stage": "S4",
+      "prompt": "prompts/comfy/shot-c.pos.txt",
+      "negative": "prompts/comfy/shot-c.neg.txt",
+      "params": {
+        "model": "Wan2.2 TI2V-5B（同 Shot A）",
+        "width": 960,
+        "height": 544,
+        "frames": 73,
+        "fps": 24,
+        "seed": 20261022,
+        "duration": 3.04,
+        "steps": 28,
+        "cfg": 5.0,
+        "sampler": "uni_pc",
+        "scheduler": "simple",
+        "shift": 8.0,
+        "denoise": 1.0,
+        "upscale": "RIFE 2× → 146 帧 @24 fps = 6.08 s（0.5× 慢放）；Real-ESRGAN 4x → 1920×1080"
+      },
+      "inputs": [
+        "design/source/wan/shot-b_v1_960x544_s20261021.mp4"
+      ],
+      "master": "design/source/wan/shot-c_v1_73f_s20261022.mp4",
+      "webOutputs": [],
+      "gate": "回眸脸 x 60%~72%、y 22%~45%；尾帧天空 ≥80%、中心 x≈68%、平均亮度与 A 首帧差 ≤3%；至少 2 镜能看清脸（C 回眸必过）",
+      "dependsOn": [
+        "vid-shot-b"
+      ]
+    },
+    {
+      "id": "vid-seam",
+      "kind": "video",
+      "title": "循环接缝：C 尾 → A 首 FLF2V 桥接（云 GPU）",
+      "stage": "S4",
+      "prompt": "prompts/comfy/seam-flf2v.pos.txt",
+      "negative": "prompts/comfy/seam-flf2v.neg.txt",
+      "params": {
+        "model": "Wan2.1 FLF2V-14B（720p fp8；6 GB 本地不可行，云 GPU 24 GB 起）",
+        "width": 1280,
+        "height": 704,
+        "frames": 25,
+        "fps": 24,
+        "seed": 20261025,
+        "duration": 1.04,
+        "steps": 24,
+        "cfg": 5.0,
+        "sampler": "uni_pc",
+        "scheduler": "simple",
+        "shift": 8.0,
+        "denoise": 1.0,
+        "upscale": null
+      },
+      "inputs": [
+        "design/source/wan/shot-c_v1_73f_s20261022.mp4",
+        "design/source/frames/clean/A_start_16x9.png"
+      ],
+      "master": "design/source/wan/seam-c2a_v1_1280x704_s20261025.mp4",
+      "webOutputs": [],
+      "optional": true,
+      "gate": "两端各 4 帧叠化后肉眼无跳变；不用 FLF2V 时走交叉淡化（§4.3）",
+      "dependsOn": [
+        "vid-shot-c",
+        "vid-shot-a"
+      ]
+    },
+    {
+      "id": "vid-v4-loop",
+      "kind": "video",
+      "title": "V4 兜底 loop：完全锁定天空 + 微动云 + 粒子（T2V，无主体）",
+      "stage": "S4",
+      "prompt": "prompts/comfy/v4-loop.pos.txt",
+      "negative": "prompts/comfy/v4-loop.neg.txt",
+      "params": {
+        "model": "Wan2.2 TI2V-5B（T2V，无首帧）",
+        "width": 832,
+        "height": 480,
+        "frames": 145,
+        "fps": 24,
+        "seed": 20261023,
+        "duration": 6.04,
+        "steps": 24,
+        "cfg": 4.5,
+        "sampler": "euler",
+        "scheduler": "simple",
+        "shift": 8.0,
+        "denoise": 1.0,
+        "upscale": "Real-ESRGAN 4x → 1920×1080；循环裁成 121 帧 = 5.04 s（尾叠首 d=1 s，§4.3 公式）"
+      },
+      "inputs": [],
+      "master": "design/source/wan/loop-sky_v1_832x480_s20261023.mp4",
+      "webOutputs": [],
+      "gate": "镜头完全锁死（无推拉摇移）；中心亮度均匀低对比；循环无黑帧",
+      "dependsOn": []
+    },
+    {
+      "id": "vid-d-variant",
+      "kind": "video",
+      "title": "D 变体（可选）：黄昏金调 + 极轻珊瑚粉反光，同 Shot B 构图与运镜",
+      "stage": "S4",
+      "prompt": "prompts/comfy/d-variant.pos.txt",
+      "negative": "prompts/comfy/d-variant.neg.txt",
+      "params": {
+        "model": "Wan2.2 TI2V-5B（同 Shot A）",
+        "width": 960,
+        "height": 544,
+        "frames": 145,
+        "fps": 24,
+        "seed": 20261024,
+        "duration": 6.04,
+        "steps": 28,
+        "cfg": 4.5,
+        "sampler": "uni_pc",
+        "scheduler": "simple",
+        "shift": 8.0,
+        "denoise": 1.0,
+        "upscale": "Real-ESRGAN 4x → 1920×1080；后期暖调 LUT + 粉光只加在光晕/皮肤边缘"
+      },
+      "inputs": [
+        "design/source/frames/clean/A_start_16x9.png"
+      ],
+      "master": "design/source/wan/shot-d_v1_960x544_s20261024.mp4",
+      "webOutputs": [],
+      "optional": true,
+      "gate": "粉红面积 <5%，不做整屏粉；与 B 同构图便于客户 A/B 对比",
+      "dependsOn": []
+    }
+  ]
+}

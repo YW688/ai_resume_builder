@@ -1,0 +1,35 @@
+{
+  "model": "qwen3.8-max",
+  "includeCoAuthoredBy": false,
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://dashscope.aliyuncs.com/apps/anthropic",
+    "ANTHROPIC_MODEL": "qwen3.8-max",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "qwen3.8-max[1M]",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME": "qwen3.8-max",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "qwen3.7-plus",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME": "qwen3.7-plus",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "qwen3.8-flash",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME": "qwen3.8-flash",
+    "CLAUDE_CODE_AUTO_MODE_SERVER": "0",
+    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "1000000",
+    "API_TIMEOUT_MS": "600000"
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(node:*)",
+      "Bash(npm run build)",
+      "Bash(npm run dev)",
+      "Bash(npm run lint)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(ffprobe:*)",
+      "Bash(pwsh:*)",
+      "Bash(powershell:*)",
+      "Bash(node scripts/hero/:*)",
+      "Bash(scripts/hero/:*)"
+    ]
+  }
+}

@@ -1,0 +1,467 @@
+{
+  "assets": [
+    {
+      "id": "sd-00-character",
+      "kind": "image",
+      "title": "角色卡（唯一面部锚点；无帽，正面/四分之三侧/侧面共 4 张选 1）",
+      "stage": "S2",
+      "prompt": "prompts/sd/00-character-sheet.expanded.pos.txt",
+      "negative": "prompts/sd/00-character-sheet.neg.txt",
+      "params": {
+        "model": "Illustrious-XL",
+        "width": 1024,
+        "height": 1024,
+        "seeds": [
+          848800,
+          848801,
+          848802,
+          848803
+        ],
+        "steps": 30,
+        "cfg": 6,
+        "sampler": "DPM++ 2M Karras",
+        "denoise": null,
+        "hires": null,
+        "controlnet": null,
+        "ipAdapter": null,
+        "adetailer": null,
+        "paramsSource": "源方案未单列角色卡参数表；steps/CFG/sampler 取 02 文档 §2.3（全项目采样基准），Hires/CN/IP-Adapter 未指定，生成时按需再加"
+      },
+      "inputs": [],
+      "master": "design/source/refs/character_front.png",
+      "webOutputs": [],
+      "gate": "客户确认",
+      "dependsOn": [],
+      "promptNote": "源方案 §3.2 Step 0-1 是 \"STYLE, CH-A, ...\" 模板；expanded 版已把 STYLE 与 CH-A 逐字展开，可直接生成。原始模板保留为 00-character-sheet.pos.txt 供溯源。"
+    },
+    {
+      "id": "sd-01",
+      "kind": "image",
+      "title": "hero 海报（视频 poster / OG 图）",
+      "stage": "S3",
+      "prompt": "prompts/sd/01-hero-poster.pos.txt",
+      "negative": "prompts/sd/01-hero-poster.neg.txt",
+      "params": {
+        "model": "Illustrious-XL",
+        "width": 1536,
+        "height": 864,
+        "seed": 848812,
+        "steps": 30,
+        "cfg": 6,
+        "sampler": "DPM++ 2M Karras",
+        "denoise": 0.5,
+        "hires": {
+          "scale": 1.5,
+          "denoise": 0.3,
+          "upscaler": "4x-UltraSharp",
+          "steps": 12
+        },
+        "controlnet": [
+          {
+            "type": "depth",
+            "weight": 0.55,
+            "start": 0,
+            "end": 0.8
+          },
+          {
+            "type": "lineart_anime",
+            "weight": 0.35,
+            "start": null,
+            "end": null,
+            "optional": true
+          }
+        ],
+        "ipAdapter": {
+          "ref": "design/source/frames/clean/00006_clean.png",
+          "weight": 0.6
+        },
+        "adetailer": null
+      },
+      "inputs": [
+        "网站设计提示词/frames/src/00006.jpg",
+        "网站设计提示词/frames/src/00001.jpg",
+        "网站设计提示词/frames/src/00009.jpg"
+      ],
+      "master": "design/source/sd/hero_poster_16x9_s848812.png",
+      "webOutputs": [
+        {
+          "path": "public/hero/poster.jpg",
+          "size": "1536x864",
+          "note": "仅兜底：poster 优先取成片 B 段 t≈6.5s 抽帧（见 01 §7.2）；无 B 帧时才用本图。源另出 1920×1080 大屏版与 2× 图（§4 6.3）"
+        },
+        {
+          "path": "public/og-hero.jpg",
+          "size": "1200x630",
+          "note": "从 1536×864 中心裁切；人物可能被裁半，另存主体居中版或裁右半天空做纯文字 OG（§4 资产1要点）"
+        }
+      ],
+      "gate": null,
+      "dependsOn": [],
+      "initImage": "design/source/input/hero_base.png",
+      "initImageNote": "S1 按 02-sd-assets.md §1.5.3 搭建的 16:9/3:4/9:16 img2img 画布；inputs 仅作参考帧，不作为 init_images"
+    },
+    {
+      "id": "sd-02",
+      "kind": "image",
+      "title": "功能图 01 · AI 解析简历（少女 + 全息玻璃简历卡）",
+      "stage": "S3",
+      "prompt": "prompts/sd/02-feature-parse.pos.txt",
+      "negative": "prompts/sd/02-feature-parse.neg.txt",
+      "params": {
+        "model": "Illustrious-XL",
+        "width": 1536,
+        "height": 864,
+        "seed": 848813,
+        "steps": 30,
+        "cfg": 6,
+        "sampler": "DPM++ 2M Karras",
+        "denoise": 0.6,
+        "hires": {
+          "scale": 1.5,
+          "denoise": 0.3,
+          "upscaler": null,
+          "steps": null
+        },
+        "controlnet": [
+          {
+            "type": "openpose",
+            "weight": 0.55,
+            "start": null,
+            "end": null
+          },
+          {
+            "type": "depth",
+            "weight": 0.4,
+            "start": null,
+            "end": null
+          }
+        ],
+        "ipAdapter": {
+          "ref": "design/source/refs/character_front.png",
+          "weight": 0.7
+        },
+        "adetailer": {
+          "face": 0.3,
+          "hands": 0.35
+        }
+      },
+      "inputs": [
+        "网站设计提示词/frames/src/00009.jpg"
+      ],
+      "master": "design/source/sd/feature_parse_16x9_s848813.png",
+      "webOutputs": [
+        {
+          "path": "public/art/feature-parse.jpg",
+          "size": "1536x864",
+          "note": "卡片内实际显示约 720×405；玻璃面板一律空白，文案后期叠"
+        }
+      ],
+      "gate": null,
+      "dependsOn": [
+        "sd-00-character"
+      ],
+      "initImage": "design/source/input/parse_base.png",
+      "initImageNote": "S1 按 02-sd-assets.md §1.5.3 搭建的 16:9/3:4/9:16 img2img 画布；inputs 仅作参考帧，不作为 init_images"
+    },
+    {
+      "id": "sd-03",
+      "kind": "image",
+      "title": "功能图 02 · 模板/版式（三块悬浮玻璃简历面板）",
+      "stage": "S3",
+      "prompt": "prompts/sd/03-feature-templates.pos.txt",
+      "negative": "prompts/sd/03-feature-templates.neg.txt",
+      "params": {
+        "model": "Illustrious-XL",
+        "width": 1536,
+        "height": 864,
+        "seed": 848814,
+        "steps": 30,
+        "cfg": 6.5,
+        "sampler": "DPM++ 2M Karras",
+        "denoise": 0.62,
+        "hires": {
+          "scale": 1.5,
+          "denoise": 0.3,
+          "upscaler": null,
+          "steps": null
+        },
+        "controlnet": [
+          {
+            "type": "depth",
+            "weight": 0.5,
+            "start": null,
+            "end": null
+          },
+          {
+            "type": "openpose",
+            "weight": 0.45,
+            "start": null,
+            "end": null
+          }
+        ],
+        "ipAdapter": {
+          "ref": "design/source/refs/character_front.png",
+          "weight": 0.65
+        },
+        "adetailer": {
+          "face": 0.25,
+          "hands": 0.35
+        }
+      },
+      "inputs": [
+        "网站设计提示词/frames/src/00010.jpg",
+        "网站设计提示词/frames/src/00009.jpg"
+      ],
+      "master": "design/source/sd/feature_templates_16x9_s848814.png",
+      "webOutputs": [
+        {
+          "path": "public/art/feature-templates.jpg",
+          "size": "1536x864",
+          "note": "面板最后替换成真模板截图；SD 只要玻璃质感/位置/留白正确"
+        }
+      ],
+      "gate": null,
+      "dependsOn": [
+        "sd-00-character"
+      ],
+      "initImage": "design/source/input/templates_base.png",
+      "initImageNote": "S1 按 02-sd-assets.md §1.5.3 搭建的 16:9/3:4/9:16 img2img 画布；inputs 仅作参考帧，不作为 init_images"
+    },
+    {
+      "id": "sd-04",
+      "kind": "image",
+      "title": "功能图 03 · 职业未来（望向发光地平线）",
+      "stage": "S3",
+      "prompt": "prompts/sd/04-feature-future.pos.txt",
+      "negative": "prompts/sd/04-feature-future.neg.txt",
+      "params": {
+        "model": "Illustrious-XL",
+        "width": 1536,
+        "height": 864,
+        "seed": 848815,
+        "steps": 30,
+        "cfg": 6,
+        "sampler": "DPM++ 2M Karras",
+        "denoise": 0.55,
+        "hires": {
+          "scale": 1.5,
+          "denoise": 0.3,
+          "upscaler": null,
+          "steps": null
+        },
+        "controlnet": [
+          {
+            "type": "depth",
+            "weight": 0.55,
+            "start": null,
+            "end": null
+          },
+          {
+            "type": "lineart_anime",
+            "weight": 0.4,
+            "start": null,
+            "end": null
+          }
+        ],
+        "ipAdapter": {
+          "ref": "design/source/frames/clean/00016_clean.png",
+          "weight": 0.6
+        },
+        "adetailer": null
+      },
+      "inputs": [
+        "网站设计提示词/frames/src/00016.jpg",
+        "网站设计提示词/frames/src/00013.jpg"
+      ],
+      "master": "design/source/sd/feature_future_16x9_s848815.png",
+      "webOutputs": [
+        {
+          "path": "public/art/feature-future.jpg",
+          "size": "1536x864",
+          "note": "CTA 图；左上留白直接压按钮"
+        }
+      ],
+      "gate": null,
+      "dependsOn": [],
+      "initImage": "design/source/input/future_base.png",
+      "initImageNote": "S1 按 02-sd-assets.md §1.5.3 搭建的 16:9/3:4/9:16 img2img 画布；inputs 仅作参考帧，不作为 init_images"
+    },
+    {
+      "id": "sd-05",
+      "kind": "image",
+      "title": "About / 故事区人像（抱滑板、暖调逆光、3:4）",
+      "stage": "S3",
+      "prompt": "prompts/sd/05-about-portrait.pos.txt",
+      "negative": "prompts/sd/05-about-portrait.neg.txt",
+      "params": {
+        "model": "Illustrious-XL",
+        "width": 896,
+        "height": 1152,
+        "seed": 848816,
+        "steps": 30,
+        "cfg": 6,
+        "sampler": "DPM++ 2M Karras",
+        "denoise": 0.55,
+        "hires": {
+          "scale": 2,
+          "denoise": 0.3,
+          "upscaler": "R-ESRGAN 4x+ Anime6B",
+          "steps": null
+        },
+        "controlnet": [
+          {
+            "type": "depth",
+            "weight": 0.4,
+            "start": null,
+            "end": null
+          },
+          {
+            "type": "lineart_anime",
+            "weight": 0.35,
+            "start": null,
+            "end": null,
+            "optional": true
+          }
+        ],
+        "ipAdapter": {
+          "ref": "design/source/refs/character_front.png",
+          "weight": 0.7
+        },
+        "adetailer": {
+          "face": 0.3,
+          "hands": 0.35
+        }
+      },
+      "inputs": [
+        "网站设计提示词/frames/src/00009.jpg"
+      ],
+      "master": "design/source/sd/about_portrait_3x4_s848816.png",
+      "webOutputs": [
+        {
+          "path": "public/art/about-portrait.jpg",
+          "size": "896x1152",
+          "note": "另出 896×1120（严格 4:5）适配不同容器，只改生成尺寸、构图 tag 不变"
+        }
+      ],
+      "gate": null,
+      "dependsOn": [
+        "sd-00-character"
+      ],
+      "initImage": "design/source/input/about_base.png",
+      "initImageNote": "S1 按 02-sd-assets.md §1.5.3 搭建的 16:9/3:4/9:16 img2img 画布；inputs 仅作参考帧，不作为 init_images"
+    },
+    {
+      "id": "sd-06",
+      "kind": "image",
+      "title": "UI 元素贴纸页（铬环/粉球/玻璃卡/头像框等，可切图）",
+      "stage": "S3",
+      "prompt": "prompts/sd/06-ui-stickers.pos.txt",
+      "negative": "prompts/sd/06-ui-stickers.neg.txt",
+      "params": {
+        "model": "Illustrious-XL",
+        "width": 1024,
+        "height": 1024,
+        "seed": 848817,
+        "steps": 30,
+        "cfg": 6.5,
+        "sampler": "DPM++ 2M Karras",
+        "denoise": null,
+        "hires": {
+          "scale": 1.5,
+          "denoise": 0.25,
+          "upscaler": null,
+          "steps": null
+        },
+        "controlnet": null,
+        "ipAdapter": {
+          "ref": "design/source/frames/clean/00016_clean.png",
+          "weight": 0.35,
+          "optional": true
+        },
+        "adetailer": null
+      },
+      "elementPrompts": [
+        "prompts/sd/06a-chrome-ring.pos.txt",
+        "prompts/sd/06b-pink-sphere.pos.txt",
+        "prompts/sd/06c-glass-card.pos.txt",
+        "prompts/sd/06d-avatar-frame.pos.txt",
+        "prompts/sd/06e-arrow.pos.txt",
+        "prompts/sd/06f-sparkle.pos.txt",
+        "prompts/sd/06g-resume-icon.pos.txt",
+        "prompts/sd/06h-play-button.pos.txt"
+      ],
+      "inputs": [
+        "网站设计提示词/frames/src/00016.jpg"
+      ],
+      "master": "design/source/sd/ui_stickers_1x1_s848817.png",
+      "webOutputs": [
+        {
+          "path": "public/art/ui-kit.png",
+          "size": "1024x1024",
+          "note": "按元素切图导出，单元素 512×512 @2x；透明/灰蓝底另存"
+        }
+      ],
+      "gate": null,
+      "dependsOn": []
+    },
+    {
+      "id": "sd-07",
+      "kind": "image",
+      "title": "移动端 hero 封面（9:16，桌面视频的手机端替代）",
+      "stage": "S3",
+      "prompt": "prompts/sd/07-mobile-cover.pos.txt",
+      "negative": "prompts/sd/07-mobile-cover.neg.txt",
+      "params": {
+        "model": "Illustrious-XL",
+        "width": 768,
+        "height": 1344,
+        "seed": 848818,
+        "steps": 30,
+        "cfg": 6,
+        "sampler": "DPM++ 2M Karras",
+        "denoise": 0.42,
+        "hires": {
+          "scale": 1.5,
+          "denoise": 0.28,
+          "upscaler": "4x-UltraSharp",
+          "steps": null
+        },
+        "controlnet": [
+          {
+            "type": "depth",
+            "weight": 0.5,
+            "start": null,
+            "end": null
+          },
+          {
+            "type": "lineart_anime",
+            "weight": 0.45,
+            "start": null,
+            "end": null
+          }
+        ],
+        "ipAdapter": {
+          "ref": "design/source/frames/clean/00009_clean.png",
+          "weight": 0.65
+        },
+        "adetailer": null
+      },
+      "inputs": [
+        "网站设计提示词/frames/src/00009.jpg",
+        "网站设计提示词/frames/src/00016.jpg"
+      ],
+      "master": "design/source/sd/mobile_cover_9x16_s848818.png",
+      "webOutputs": [
+        {
+          "path": "public/hero/mobile-cover.jpg",
+          "size": "768x1344",
+          "note": "另出 1080×1920 高清版；别直接生成 1080×1920（SDXL 会糊），靠 Hires 放大"
+        }
+      ],
+      "gate": null,
+      "dependsOn": [],
+      "initImage": "design/source/input/mobile_base.png",
+      "initImageNote": "S1 按 02-sd-assets.md §1.5.3 搭建的 16:9/3:4/9:16 img2img 画布；inputs 仅作参考帧，不作为 init_images"
+    }
+  ]
+}

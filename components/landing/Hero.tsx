@@ -9,44 +9,61 @@ const NAV = [
   { href: "#faq", label: "常见问题" },
 ];
 
-/* 版式参照 design/UI_ref.png：居中胶囊导航、徽章、超大居中两行标题、双 CTA、底部 SCROLL。
-   <1024px 视频/海报收进底部 4:3 横幅（保证少年与猫同框），上部暖空渐变承字。 */
+/* 新版式（docs/hero-visual/04-frontend-integration.md §4）：
+   全幅视频 + scrim，桌面 ≥1024px 左玻璃卡片（≤640px）/ 右主体区 60/40 网格；
+   <1024px 单列卡片靠下，16:9 源用 object-position:70% 38% 保住右 1/3 主体（见 globals.css）。
+   文案逐字沿用旧版（plan.md 产品事实），颜色一律走 --hero-* token。 */
 export default function Hero() {
   return (
-    <section className="relative flex min-h-svh flex-col overflow-hidden bg-gradient-to-b from-[#f6e7cd] via-[#f3ecdf] to-[#efe6d6]">
-      <div className="absolute inset-x-0 bottom-0 aspect-[4/3] lg:inset-0 lg:aspect-auto">
+    <section className="hero-surface relative flex min-h-svh flex-col overflow-hidden">
+      {/* 1) poster 兜底层：先绘制，LCP 候选；视频未就绪/缺失/reduced-motion 时兜底。
+          桌面用成片抽帧 16:9；移动端用 9:16 竖版封面（I6），避免横屏裁掉主体 */}
+      <div aria-hidden className="absolute inset-0">
         <Image
           src="/hero/poster.jpg"
           alt=""
-          aria-hidden
           fill
-          priority
+          unoptimized
+          loading="eager"
+          fetchPriority="high"
           sizes="100vw"
-          className="object-cover"
+          className="hero-media hidden lg:block"
+        />
+        <Image
+          src="/hero/mobile-cover.jpg"
+          alt=""
+          fill
+          unoptimized
+          loading="eager"
+          sizes="100vw"
+          className="hero-media lg:hidden"
+          style={{ objectPosition: "50% 50%" }}
         />
       </div>
+
+      {/* 2) 视频（client 组件，absolute 铺满） */}
       <HeroVideo />
 
-      {/* 中心柔光：文字区 α≥0.55，保证炭色文字压在深色衣装上对比度仍 ≥4.5:1 */}
-      <div
-        aria-hidden
-        className="absolute inset-0 [background:radial-gradient(ellipse_75%_65%_at_50%_45%,rgba(255,252,244,0.86),rgba(255,252,244,0.55)_45%,rgba(255,252,244,0)_78%)]"
-      />
+      {/* 3) 压字遮罩：暖光 + 底部渐深，服务白字 */}
+      <div aria-hidden className="hero-scrim" />
 
-      <header className="ld-rise absolute inset-x-0 top-5 z-20 flex justify-center px-4">
-        <nav className="flex items-center gap-1 rounded-full bg-white/85 py-1.5 pl-4 pr-1.5 shadow-lg shadow-zinc-900/5 ring-1 ring-zinc-900/10 backdrop-blur">
-          <Link href="/" className="flex items-center gap-2 pr-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#7b61ff] text-[10px] font-bold text-white">
+      {/* 4) 顶部胶囊导航：细、轻、半透明，弱化存在感，把注意力留给大标题 */}
+      <header className="ld-rise absolute inset-x-0 top-4 z-20 flex justify-center px-4">
+        <nav className="flex w-full max-w-[820px] items-center rounded-full border border-white/40 bg-white/30 p-1.5 pl-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_10px_30px_rgba(6,20,40,0.10)] backdrop-blur-xl backdrop-saturate-125">
+          <Link href="/" className="flex shrink-0 items-center gap-2 pr-3">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#1A6BD6] to-[#E5355B] text-[10px] font-bold text-white">
               简
             </span>
-            <span className="text-sm font-bold tracking-tight text-zinc-900">AI 简历编辑器</span>
+            <span className="text-[13px] font-semibold tracking-tight text-[#0E1B2A]">
+              AI 简历编辑器
+            </span>
           </Link>
-          <div className="hidden items-center md:flex">
+          <div className="hidden flex-1 items-stretch justify-evenly md:flex">
             {NAV.map((n) => (
               <a
                 key={n.href}
                 href={n.href}
-                className="rounded-full px-3 py-1.5 text-sm text-zinc-600 transition hover:text-zinc-900"
+                className="flex flex-1 items-center justify-center rounded-full px-2 py-1.5 text-[13px] text-[#0E1B2A]/75 transition hover:bg-white/40 hover:text-[#0E1B2A]"
               >
                 {n.label}
               </a>
@@ -54,65 +71,57 @@ export default function Hero() {
           </div>
           <Link
             href="/sign-in"
-            className="ml-1 rounded-full bg-zinc-900 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-zinc-700"
+            className="ml-auto shrink-0 rounded-full bg-[#0E1B2A]/85 px-4 py-1.5 text-[13px] font-medium text-white/95 transition hover:bg-[#0E1B2A]"
           >
             登录
           </Link>
         </nav>
       </header>
 
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 pb-[calc(75vw+1.5rem)] pt-24 text-center lg:pb-28 lg:pt-28">
-        <span
-          className="ld-rise rounded-full bg-white/80 px-4 py-1.5 text-xs font-medium text-zinc-700 shadow-sm ring-1 ring-zinc-900/10 backdrop-blur"
-          style={{ animationDelay: "0.1s" }}
-        >
-          AI 按 JD 逐段改写
-        </span>
+      {/* 5) 内容区：<1024 单列靠下，≥1024 左卡右主体 */}
+      <div className="relative z-10 mx-auto flex w-full max-w-[1200px] flex-1 items-end px-4 pb-16 pt-24 sm:items-center lg:px-8 lg:py-24">
+        <div className="grid w-full min-w-0 grid-cols-1 items-end gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-center lg:gap-12">
+          <article className="hero-glass hero-card min-w-0">
+            <div className="hero-card-top">
+              <span className="hero-badge">
+                <span aria-hidden className="hero-badge-dot" />
+                AI 按 JD 逐段改写
+              </span>
+              <span className="hero-meta">RESUME · 2026</span>
+            </div>
 
-        <h1 className="mt-6 text-5xl font-bold leading-[1.12] tracking-tight text-zinc-900 sm:text-7xl">
-          <span className="ld-line">
-            <span style={{ animationDelay: "0.18s" }}>求职，</span>
-          </span>
-          <span className="ld-line">
-            <span style={{ animationDelay: "0.26s" }}>从容一点。</span>
-          </span>
-        </h1>
+            <div className="hero-card-center">
+              <h1 className="hero-title">
+                <span className="ld-line hero-kicker">
+                  <span style={{ animationDelay: "0.16s" }}>求职这件事</span>
+                </span>
+                <span className="ld-line hero-display">
+                  <span style={{ animationDelay: "0.24s" }}>从容一点</span>
+                </span>
+              </h1>
+              <div className="hero-rule" aria-hidden />
+            </div>
 
-        <p
-          className="ld-rise mt-6 max-w-xl text-base leading-relaxed text-zinc-800 sm:text-lg"
-          style={{ animationDelay: "0.42s" }}
-        >
-          粘贴目标 JD，AI 按关键词把你的经历改写成 HR 想看的量化表达；
-          <br className="hidden sm:block" />
-          排版、导出，一次做完。
-        </p>
+            <div className="hero-card-actions">
+              <Link href="/editor" className="hero-cta-primary">
+                免费开始做简历
+              </Link>
+              <a href="#how" className="hero-cta-ghost">
+                看看怎么用
+              </a>
+            </div>
+          </article>
 
-        <div
-          className="ld-rise mt-9 flex flex-col items-center gap-4 sm:flex-row"
-          style={{ animationDelay: "0.52s" }}
-        >
-          <Link
-            href="/editor"
-            className="rounded-full bg-zinc-900 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-zinc-900/20 transition hover:-translate-y-0.5 hover:bg-zinc-800"
-          >
-            免费开始制作
-          </Link>
-          <a
-            href="#how"
-            className="rounded-full px-5 py-3 text-sm font-semibold text-zinc-800 ring-1 ring-zinc-900/15 transition hover:bg-white/60"
-          >
-            看看怎么用
-          </a>
+          {/* 右列：留给画面里的主体，不放内容 */}
+          <div aria-hidden className="hidden min-w-0 lg:block" />
         </div>
       </div>
 
-      <div
-        className="ld-rise absolute inset-x-0 bottom-6 z-10 flex justify-center"
-        style={{ animationDelay: "1s" }}
-      >
+      {/* 6) SCROLL：仅桌面显示，避免与底部卡片重叠 */}
+      <div className="ld-rise absolute inset-x-0 bottom-6 z-10 hidden justify-center lg:flex">
         <a
           href="#how"
-          className="ld-breathe rounded-full bg-white/70 px-5 py-2 text-[10px] font-semibold tracking-[0.25em] text-zinc-800 backdrop-blur transition hover:bg-white/90"
+          className="ld-breathe rounded-full bg-white/70 px-5 py-2 text-[10px] font-semibold tracking-[0.25em] text-hero-ink backdrop-blur transition hover:bg-white/90"
         >
           SCROLL ↓
         </a>
