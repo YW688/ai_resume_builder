@@ -1,0 +1,167 @@
+/* 投递追踪页补充样式：移动端表格降级为两行列表；阶段切换触发器。 */
+
+.apps-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--ui-rule);
+}
+
+.apps-filters .chip-row {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 1px;
+  scrollbar-width: none;
+}
+
+.apps-filters .chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.apps-filters .chip {
+  flex: none;
+}
+
+.stage-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 2px 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* 漏斗条内部是 span，需要显式 block 才能让宽度/高度生效。 */
+.apps-funnel .funnel-fill {
+  display: block;
+}
+
+/* 平板宽度下（641–1100）12 栏栅格为两列，让近期面试占满，避免右半边留空。 */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .apps-interviews {
+    grid-column: span 2;
+  }
+}
+
+.stage-trigger:hover .pill {
+  filter: brightness(0.975);
+}
+
+.stage-caret {
+  flex: none;
+  color: var(--ui-faint);
+}
+
+.apps-table-desktop {
+  display: block;
+}
+
+.apps-mobile-list {
+  display: none;
+}
+
+.table-empty {
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.table-empty .empty-desc {
+  margin-inline: auto;
+}
+
+.apps-mobile-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--ui-rule);
+}
+
+.apps-mobile-row:first-child {
+  border-top: 0;
+}
+
+.apps-mobile-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.apps-mobile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.apps-mobile-role {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.apps-mobile-top .stage-trigger {
+  flex: none;
+  min-height: 32px;
+}
+
+.apps-mobile-meta {
+  margin-top: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ui-muted);
+}
+
+.apps-mobile-row > .menu-wrap {
+  flex: none;
+  margin-top: 1px;
+}
+
+.apps-mobile-row > .menu-wrap .btn-icon {
+  width: 36px;
+  height: 36px;
+}
+
+@media (max-width: 760px) {
+  .apps-table-desktop {
+    display: none;
+  }
+
+  .apps-mobile-list {
+    display: block;
+  }
+}
+
+@media (max-width: 640px) {
+  .apps-filters {
+    padding: 10px 16px;
+    gap: 8px;
+  }
+
+  .apps-panel-head {
+    flex-wrap: wrap;
+  }
+
+  .apps-panel-head .panel-head-actions {
+    flex: 1 1 100%;
+  }
+
+  .apps-panel-head .searchbox {
+    flex-basis: 100%;
+    max-width: none;
+  }
+}

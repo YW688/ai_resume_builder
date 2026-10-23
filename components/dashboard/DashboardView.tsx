@@ -54,7 +54,7 @@ export function DashboardView({ resumes, usage }: { resumes: Row[]; usage: Usage
   const canCreate = usage.resumeLimit === null || usage.resumeCount < usage.resumeLimit;
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900">
+    <div className="min-h-svh bg-zinc-50 text-zinc-900">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
           <div>

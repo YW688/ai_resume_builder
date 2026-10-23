@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Agent tooling and design-research assets are not part of the app bundle.
+    ".agents/**",
+    ".taste-skill/**",
+    "docs/**",
   ]),
 ]);
 

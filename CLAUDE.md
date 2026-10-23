@@ -41,7 +41,7 @@
 | S3 | 7 张图 + 4 张视频关键帧 | 11 张全部通过 10 秒验收（见 02 文档） |
 | S4 | 万相 4 段视频 | 1080P、时长符合（5/6/5/5s）、首尾帧闭合、主体不进中心 |
 | S5 | 剪辑 / 导出 | 15–18s、无音轨、H.264、循环无跳帧、体积达标（见 03 文档） |
-| S6 | 前端集成 | `npm run build` 通过 + 375/768/1440 三档截图 |
+| S6 | 前端集成 | `node scripts/hero/verify-web-assets.mjs` **0 FAIL** + `npm run build` 通过 + 375/768/1440 三档截图（截图里视频必须真在播，不能只有 poster） |
 | S7 | 总验收 | `05-acceptance.md` 清单全过 |
 
 ## 4. 常用命令
@@ -49,6 +49,7 @@
 ```powershell
 scripts/hero/setup-claude.cmd                     # 首次：配置 key 并实测
 scripts/hero/doctor.cmd                           # 环境/API/素材自检（Git Bash / PowerShell / cmd 通用）
+node scripts/hero/verify-web-assets.mjs            # 网页视频/封面证据化验收（编码/分辨率/音轨/MD5/体积）
 node scripts/hero/assets-check.mjs --next         # 下一个待办资产
 node scripts/hero/qwen-image-batch.mjs --only qwen-01 --dry-run   # 默认 dry-run
 node scripts/hero/qwen-image-batch.mjs --only qwen-01 --run       # 真正调用（计费）
@@ -72,7 +73,7 @@ npx tsc --noEmit                                  # 类型检查
 | Qwen 图像母版 PNG | `design/source/qwen/`（同名 `.txt` 记录 prompt/refs/参数） |
 | 万相视频母版 MP4 | `design/source/wan/`（同名 `.txt`） |
 | 网页图片 | `public/hero/{poster.jpg,mobile-cover.jpg}`、`public/og-hero.jpg`、`public/art/{feature-parse,feature-templates,feature-future,about-portrait}.jpg`、`public/art/ui-kit.png` |
-| 网页视频 | `public/hero/{hero.mp4,hero-720p.mp4,hero-9x16.mp4,poster.jpg}`（WebM 可选） |
+| 网页视频 | `public/hero/{hero.mp4,hero-720p.mp4,poster.jpg}`（**已交付**，H.264/无音轨/faststart）；`hero-9x16.mp4` 可选未生成，移动端由 `mobile-cover.jpg` 兜底 |
 | 提示词 | `docs/hero-visual/prompts/image/*.txt`、`prompts/video/*.txt` |
 | 资产清单 | `docs/hero-visual/assets.json`（v2，Lead 合并，勿手改） |
 
@@ -83,7 +84,7 @@ npx tsc --noEmit                                  # 类型检查
 3. **构图**：桌面 16:9，主体在右 1/3；中心 60%×50% 安全区只许低对比天空/云/远城。
 4. **色板**：只用 `#1A6BD6 / #F4F8FC / #FFE9B0 / #F7F9FA→#C9D2D9→#8E9AA4 / #E5355B / #8E9AA1 / #0E1B2A`；唯一派生色 `--hero-pink-cta: #D01E48` 仅 CTA 底色。
 5. **玻璃卡片**：`blur(28px) saturate(1.35)` + 白 10% 底 + 35% 描边 + 内顶高光；正文对底图对比度 ≥4.5:1；`@supports` 兜底。
-6. **视频**：1080P、15–18s、无音轨、H.264、无缝循环；`prefers-reduced-motion` 暂停并显示 poster；移动端 9:16 兜底。
+6. **视频**：1080P（主源）/720P（≤1023px 兜底）、约 13–18s、**无音轨**、**H.264**（HEVC 一律不可交付，Firefox 不可播）、faststart、无缝循环；`prefers-reduced-motion` 暂停并显示 poster；移动端由 `mobile-cover.jpg` 兜底。**任何视频替换后必须跑 `verify-web-assets.mjs`。**
 7. **文案**：只能基于 `plan.md` 的产品事实；不编造用户数/融资/评价/客户 logo，不承诺「100% 通过」，示例数据标「示例」。
 8. **API 纪律**：`watermark:false`；图像 `size` 在请求里用 `宽*高`（DashScope 协议，`*` 不是 `x`；assets.json 存 `宽x高`，由脚本转换）；参考图 ≤3 张；视频 `duration` 只能是 2–15 的**整数秒**；结果 URL 仅 24h，必须立即下载；不编造价格，按百炼控制台为准。
 9. **工程边界**：不改 `.env.local`、`lib/`、`app/api/`、认证/支付/数据库逻辑；不新增依赖（确有需要先说明理由）；不 `git commit/push`；不删除现有文件。
@@ -100,7 +101,7 @@ npx tsc --noEmit                                  # 类型检查
 
 ## 8. 已知限制（2026-10-20 核实）
 
-- **本机未安装 ffmpeg**：剪辑主路径是**剪映 / Premiere / DaVinci**（导出 H.264 1080p 30fps、去音轨）；ffmpeg 命令只作有环境时的备选。
+- **ffmpeg 已可用**（winget 安装：`C:\Users\<user>\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_*\ffmpeg-9.0.2-full_build\bin`）：转码/抽帧/验收跑脚本时直接用；**逐镜头剪辑主路径仍推荐剪映 / Premiere / DaVinci**（导出 H.264 1080p 30fps、去音轨）。
 - 生成是**按次计费**的云 API：先各跑 1 张 / 1 段试水，确认风格与成本后再批量；失败重试每次只改一个变量。
 - 生成有概率性：同一 seed 也不保证完全一致；一致性靠「角色卡 + 参考图（I2I）+ 固定提示词」，不追求像素级复刻。
 - 旧主题产物（`public/hero/*`、`public/art/*` 旧图）在新资产验收通过前**不删除**，S6 时再切换引用。

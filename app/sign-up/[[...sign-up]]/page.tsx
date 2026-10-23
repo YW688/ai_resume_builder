@@ -1,12 +1,8 @@
-import { Suspense } from "react";
-import { SignUp } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
 
+export const metadata = { robots: { index: false, follow: false } };
+
+/** 演示版本不实现身份认证：所有入口直接进入工作台。 */
 export default function SignUpPage() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
-      <Suspense fallback={null}>
-        <SignUp />
-      </Suspense>
-    </div>
-  );
+  redirect("/dashboard");
 }

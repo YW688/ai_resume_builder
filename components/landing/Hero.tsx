@@ -70,10 +70,10 @@ export default function Hero() {
             ))}
           </div>
           <Link
-            href="/sign-in"
+            href="/dashboard"
             className="ml-auto shrink-0 rounded-full bg-[#0E1B2A]/85 px-4 py-1.5 text-[13px] font-medium text-white/95 transition hover:bg-[#0E1B2A]"
           >
-            登录
+            进入工作台
           </Link>
         </nav>
       </header>
@@ -87,7 +87,6 @@ export default function Hero() {
                 <span aria-hidden className="hero-badge-dot" />
                 AI 按 JD 逐段改写
               </span>
-              <span className="hero-meta">RESUME · 2026</span>
             </div>
 
             <div className="hero-card-center">

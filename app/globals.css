@@ -9,7 +9,6 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -297,19 +296,12 @@ body {
   background: var(--hero-pink);
   box-shadow: 0 0 0 3px rgba(229, 53, 91, 0.16);
 }
-.hero-meta {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.28em;
-  color: rgba(14, 27, 42, 0.42);
-  white-space: nowrap;
-}
 .hero-kicker > span {
   display: block;
   font-size: clamp(15px, 1.5vw, 19px);
   font-weight: 600;
   letter-spacing: 0.18em;
-  color: rgba(14, 27, 42, 0.55);
+  color: rgba(14, 27, 42, 0.7);
   text-transform: uppercase;
 }
 .hero-display > span {
@@ -320,20 +312,6 @@ body {
   letter-spacing: -0.035em;
   font-weight: 800;
   color: var(--hero-ink);
-  background: linear-gradient(
-    177deg,
-    #0e1b2a 0%,
-    #1d3750 24%,
-    #48617a 42%,
-    #9fb0bd 58%,
-    #e6edf2 66%,
-    #7c8e9d 78%,
-    #324a61 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55));
 }
 .hero-rule {
   margin-top: 24px;
@@ -348,12 +326,6 @@ body {
   font-size: clamp(14px, 1.3vw, 17px);
   line-height: 1.7;
   color: rgba(14, 27, 42, 0.74);
-}
-.hero-foot {
-  margin-top: 18px;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: rgba(14, 27, 42, 0.45);
 }
 .hero-cta-primary {
   border-radius: 999px;
@@ -386,6 +358,28 @@ body {
   outline-offset: 3px;
 }
 
+/* 落地页 CTA 收敛为两套：primary（粉底白字，5.30:1）/ secondary（描边）。
+   底色统一引用 --hero-pink-cta，悬停由 token 派生，避免再引入未达标原色或硬编码色值。 */
+.cta-primary {
+  background: var(--hero-pink-cta);
+  color: #fff;
+}
+.cta-primary:hover {
+  background: color-mix(in srgb, var(--hero-pink-cta) 86%, #000);
+}
+.cta-secondary {
+  border: 1px solid rgba(14, 27, 42, 0.18);
+  color: var(--hero-ink);
+}
+.cta-secondary:hover {
+  background: rgba(14, 27, 42, 0.05);
+}
+.cta-primary:focus-visible,
+.cta-secondary:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
 /* 移动端：关掉 28px 模糊（性能），改深色不透明玻璃，文字对比度反而更高 */
 @media (max-width: 1023px) {
   .hero-media {
@@ -406,9 +400,6 @@ body {
   }
   .hero-glass::before {
     opacity: 0.45;
-  }
-  .hero-meta {
-    display: none;
   }
 }
 

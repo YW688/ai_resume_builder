@@ -91,8 +91,8 @@ const FAQS = [
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-[#1A6BD6]/20 bg-white/70 px-3.5 py-1 text-xs font-semibold text-[#1A6BD6] shadow-sm backdrop-blur">
-      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#E5355B]" />
+    <span className="inline-flex items-center gap-2 rounded-full border border-[#1A6BD6]/20 bg-white/70 px-3.5 py-1 text-[13px] font-semibold text-[#1A6BD6] shadow-sm backdrop-blur">
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-hero-pink" />
       {children}
     </span>
   );
@@ -104,19 +104,21 @@ function SectionTitle({
   desc,
   align = "left",
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   desc?: string;
   align?: "left" | "center";
 }) {
   return (
     <div className={align === "center" ? "mx-auto max-w-2xl text-center" : "max-w-2xl"}>
-      <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-[#0E1B2A] sm:text-[2.5rem]">
+      {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
+      <h2
+        className={`${eyebrow ? "mt-4" : ""} text-3xl font-bold leading-tight tracking-tight text-[#0E1B2A] sm:text-[2.5rem]`}
+      >
         {title}
       </h2>
       {desc ? (
-        <p className="mt-4 text-sm leading-relaxed text-[#0E1B2A]/65 sm:text-base">{desc}</p>
+        <p className="mt-4 text-base leading-relaxed text-[#0E1B2A]/65">{desc}</p>
       ) : null}
     </div>
   );
@@ -137,11 +139,11 @@ function HowItWorks() {
   return (
     <section id="how" className="relative overflow-hidden bg-[#F4F8FC]">
       <SoftGlow className="-left-24 top-10 h-72 w-72 bg-[#1A6BD6]/10" />
-      <SoftGlow className="-right-20 bottom-0 h-64 w-64 bg-[#E5355B]/10" />
+      <SoftGlow className="-right-20 bottom-0 h-64 w-64 bg-hero-pink/10" />
       <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 md:grid-cols-[1.02fr_0.98fr] md:py-28">
         <div className="relative">
           <div className="absolute -left-5 -top-5 hidden h-20 w-20 rounded-full border border-[#C9D2D9] bg-gradient-to-br from-white to-[#C9D2D9]/60 shadow-lg sm:block" />
-          <div className="absolute -right-4 -bottom-6 hidden h-14 w-14 rounded-full bg-[#E5355B]/80 blur-[1px] sm:block" />
+          <div className="absolute -right-4 -bottom-6 hidden h-14 w-14 rounded-full bg-hero-pink/80 blur-[1px] sm:block" />
           <div className="relative aspect-[16/10] overflow-hidden rounded-[28px] border border-white/70 bg-white/40 p-2 shadow-[0_24px_60px_rgba(6,20,40,0.14)] backdrop-blur">
             <div className="relative h-full w-full overflow-hidden rounded-[22px]">
               <Image
@@ -171,7 +173,7 @@ function HowItWorks() {
                 </span>
                 <div>
                   <h3 className="font-semibold text-[#0E1B2A]">{s.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[#0E1B2A]/65">{s.desc}</p>
+                  <p className="mt-1 text-base leading-relaxed text-[#0E1B2A]/65">{s.desc}</p>
                 </div>
               </li>
             ))}
@@ -190,19 +192,19 @@ function BeforeAfter() {
           <h2 className="text-2xl font-bold tracking-tight text-[#0E1B2A] sm:text-3xl">
             改写前后，一眼看清
           </h2>
-          <span className="rounded-full border border-[#1A6BD6]/20 bg-[#1A6BD6]/5 px-2.5 py-0.5 text-xs font-medium text-[#1A6BD6]">
+          <span className="rounded-full border border-[#1A6BD6]/20 bg-[#1A6BD6]/5 px-2.5 py-0.5 text-[13px] font-medium text-[#1A6BD6]">
             示例
           </span>
         </div>
-        <p className="mt-3 text-sm text-[#0E1B2A]/60">
+        <p className="mt-3 text-base text-[#0E1B2A]/60">
           下面是一段运营经历在粘贴 JD 前后的对照，内容为示例数据。
         </p>
         <div className="mt-9 grid gap-6 md:grid-cols-2">
           <div className="glass-panel rounded-[28px] p-7">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#0E1B2A]/45">
+            <h3 className="text-[13px] font-semibold text-[#0E1B2A]/70">
               改写前 · 你的原文
             </h3>
-            <ul className="mt-5 space-y-3 text-sm leading-relaxed text-[#0E1B2A]/75">
+            <ul className="mt-5 space-y-3 text-base leading-relaxed text-[#0E1B2A]/75">
               {BEFORE.map((line) => (
                 <li key={line} className="border-l-2 border-[#C9D2D9] pl-3">
                   {line}
@@ -211,11 +213,11 @@ function BeforeAfter() {
             </ul>
           </div>
           <div className="glass-panel relative overflow-hidden rounded-[28px] p-7">
-            <SoftGlow className="-right-10 -top-10 h-40 w-40 bg-[#E5355B]/15" />
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1A6BD6]">
+            <SoftGlow className="-right-10 -top-10 h-40 w-40 bg-hero-pink/15" />
+            <h3 className="text-[13px] font-semibold text-[#1A6BD6]">
               改写后 · 对照 JD 关键词
             </h3>
-            <ul className="mt-5 space-y-3 text-sm leading-relaxed text-[#0E1B2A]/85">
+            <ul className="mt-5 space-y-3 text-base leading-relaxed text-[#0E1B2A]/85">
               {AFTER.map((parts, i) => (
                 <li key={i} className="border-l-2 border-[#1A6BD6]/50 pl-3">
                   {parts.map((part, j) =>
@@ -243,21 +245,12 @@ function BeforeAfter() {
 function EaseBand() {
   return (
     <section className="relative overflow-hidden bg-[#0E1B2A]">
-      <Image
-        src="/art/feature-templates.jpg"
-        alt="动画风格插画：三块悬浮的半透明玻璃简历面板，铬色边框与粉色光球点缀"
-        fill
-        sizes="100vw"
-        className="object-cover opacity-45"
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-[#0E1B2A] via-[#0E1B2A]/85 to-[#0E1B2A]/30"
-      />
+      <SoftGlow className="-left-24 top-0 h-80 w-80 bg-[#1A6BD6]/25" />
+      <SoftGlow className="right-0 top-1/4 h-72 w-72 bg-hero-pink/20" />
       <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-4 py-20 md:grid-cols-2 md:py-28">
         <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-semibold text-[#F4F8FC] backdrop-blur">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#E5355B]" />
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-[13px] font-semibold text-[#F4F8FC] backdrop-blur">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-hero-pink" />
             从容，不用焦虑
           </span>
           <h2 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-[#F4F8FC] sm:text-[2.5rem]">
@@ -265,13 +258,13 @@ function EaseBand() {
             <br className="hidden sm:block" />
             交给 AI
           </h2>
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-[#F4F8FC]/70 sm:text-base">
+          <p className="mt-4 max-w-md text-base leading-relaxed text-[#F4F8FC]/70">
             改简历是件耗神的事。匹配关键词、补量化口径、调排版这些枯燥的活交给 AI，
             你把力气留给面试本身。逐段改写、随时重来，节奏始终在你手里。
           </p>
           <Link
             href="/editor"
-            className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#E5355B] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(229,53,91,0.35)] transition hover:-translate-y-0.5 hover:bg-[#D01E48]"
+            className="cta-primary mt-8 inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-[0_10px_30px_rgba(208,30,72,0.35)] transition hover:-translate-y-0.5"
           >
             免费开始制作
             <span aria-hidden>→</span>
@@ -280,7 +273,7 @@ function EaseBand() {
         <div className="relative aspect-[4/3] overflow-hidden rounded-[28px] border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
           <Image
             src="/art/feature-templates.jpg"
-            alt=""
+            alt="动画风格插画：三块悬浮的半透明玻璃简历面板，铬色边框与粉色光球点缀"
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover"
@@ -298,7 +291,6 @@ function Features() {
       <div className="relative mx-auto max-w-6xl px-4 py-20 md:py-28">
         <SectionTitle
           align="center"
-          eyebrow="能力"
           title="该做的，都做了"
           desc="从改写到导出，一条链路做完；不堆功能，只把每一步做扎实。"
         />
@@ -310,23 +302,23 @@ function Features() {
             >
               <span
                 aria-hidden
-                className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#1A6BD6] via-[#C9D2D9] to-[#E5355B] opacity-70"
+                className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#1A6BD6] via-[#C9D2D9] to-hero-pink opacity-70"
               />
               <h3 className="font-semibold text-[#0E1B2A]">{c.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#0E1B2A]/65">{c.desc}</p>
+              <p className="mt-2 text-base leading-relaxed text-[#0E1B2A]/65">{c.desc}</p>
             </div>
           ))}
           <div className="relative overflow-hidden rounded-[24px] border border-white/70 bg-gradient-to-br from-[#0E1B2A] to-[#123A63] p-6 shadow-[0_16px_40px_rgba(6,20,40,0.18)]">
             <div className="flex h-full flex-col justify-between gap-4">
               <div>
-                <h3 className="font-semibold text-[#F4F8FC]">你只管去面试</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#F4F8FC]/65">
+                <h3 className="font-semibold text-[#F4F8FC]">剩下的只有投递</h3>
+                <p className="mt-2 text-base leading-relaxed text-[#F4F8FC]/65">
                   关键词、量化、排版都已经在导出的 PDF 里。
                 </p>
               </div>
               <Link
                 href="/editor"
-                className="inline-flex w-fit items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-[#F4F8FC] ring-1 ring-white/25 backdrop-blur transition hover:bg-white/20"
+                className="cta-primary inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-[0_10px_24px_rgba(208,30,72,0.35)] transition hover:-translate-y-0.5"
               >
                 开始制作 <span aria-hidden>→</span>
               </Link>
@@ -343,7 +335,7 @@ function About() {
     <section className="relative overflow-hidden bg-white">
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 md:grid-cols-[0.85fr_1.15fr] md:py-28">
         <div className="relative order-2 md:order-1">
-          <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-[#E5355B]/25 to-transparent blur-xl" />
+          <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-hero-pink/25 to-transparent blur-xl" />
           <div className="relative aspect-[3/4] overflow-hidden rounded-[28px] border border-white/60 p-2 shadow-[0_24px_60px_rgba(6,20,40,0.16)]">
             <div className="relative h-full w-full overflow-hidden rounded-[22px]">
               <Image
@@ -355,26 +347,25 @@ function About() {
               />
             </div>
           </div>
-          <span className="absolute -bottom-4 right-4 rounded-full border border-white/60 bg-white/80 px-4 py-1.5 text-xs font-semibold text-[#0E1B2A] shadow-lg backdrop-blur">
+          <span className="absolute -bottom-4 right-4 rounded-full border border-white/60 bg-white/80 px-4 py-1.5 text-[13px] font-semibold text-[#0E1B2A] shadow-lg backdrop-blur">
             为中文求职者而做
           </span>
         </div>
         <div className="order-1 md:order-2">
           <SectionTitle
-            eyebrow="关于我们"
             title="一份简历，不该耗掉你的从容"
             desc="我们做的是国内求职者每天都在经历的同一件事：对着 JD 反复改简历。把它拆成「填、贴、改」三步，把重复劳动交给模型，把判断留给你。"
           />
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             <div className="glass-panel rounded-2xl p-5">
               <p className="text-sm font-semibold text-[#0E1B2A]">不夸大</p>
-              <p className="mt-1 text-xs leading-relaxed text-[#0E1B2A]/60">
+              <p className="mt-1 text-sm leading-relaxed text-[#0E1B2A]/60">
                 只改你写下的真实经历，不编造学历与项目。
               </p>
             </div>
             <div className="glass-panel rounded-2xl p-5">
               <p className="text-sm font-semibold text-[#0E1B2A]">数据在境内</p>
-              <p className="mt-1 text-xs leading-relaxed text-[#0E1B2A]/60">
+              <p className="mt-1 text-sm leading-relaxed text-[#0E1B2A]/60">
                 简历与照片存于境内数据中心，注销即删。
               </p>
             </div>
@@ -388,7 +379,7 @@ function About() {
 function Pricing() {
   return (
     <section id="pricing" className="relative overflow-hidden bg-[#F4F8FC]">
-      <SoftGlow className="right-0 top-10 h-64 w-64 bg-[#E5355B]/10" />
+      <SoftGlow className="right-0 top-10 h-64 w-64 bg-hero-pink/10" />
       <div className="relative mx-auto max-w-5xl px-4 py-20 md:py-28">
         <SectionTitle
           align="center"
@@ -400,28 +391,28 @@ function Pricing() {
           <div className="glass-panel rounded-[28px] p-7">
             <h3 className="font-semibold text-[#0E1B2A]">免费</h3>
             <p className="mt-2 text-4xl font-bold tracking-tight text-[#0E1B2A]">¥0</p>
-            <ul className="mt-5 space-y-2.5 text-sm text-[#0E1B2A]/65">
+            <ul className="mt-5 space-y-2.5 text-base text-[#0E1B2A]/65">
               <li>1 份简历</li>
               <li>2 次 AI 改写</li>
               <li>2 次 PDF 导出</li>
             </ul>
             <Link
               href="/editor"
-              className="mt-7 block rounded-full border border-[#0E1B2A]/15 px-4 py-2.5 text-center text-sm font-semibold text-[#0E1B2A] transition hover:bg-[#0E1B2A]/5"
+              className="cta-secondary mt-7 block rounded-full px-4 py-2.5 text-center text-sm font-semibold transition"
             >
               免费开始
             </Link>
           </div>
           <div className="relative overflow-hidden rounded-[28px] bg-[#0E1B2A] p-7 text-white shadow-[0_24px_60px_rgba(6,20,40,0.28)]">
-            <SoftGlow className="-right-8 -top-8 h-40 w-40 bg-[#E5355B]/30" />
-            <span className="absolute right-5 top-5 rounded-full bg-[#E5355B] px-2.5 py-0.5 text-xs font-semibold text-white">
+            <SoftGlow className="-right-8 -top-8 h-40 w-40 bg-hero-pink/30" />
+            <span className="absolute right-5 top-5 rounded-full bg-hero-pink-cta px-2.5 py-0.5 text-[13px] font-semibold text-white">
               推荐
             </span>
             <h3 className="font-semibold">30 天通行证</h3>
             <p className="mt-2 text-4xl font-bold tracking-tight">
               ¥19<span className="text-sm font-normal text-white/50"> / 30 天</span>
             </p>
-            <ul className="mt-5 space-y-2.5 text-sm text-white/70">
+            <ul className="mt-5 space-y-2.5 text-base text-white/70">
               <li>简历数量不限</li>
               <li>AI 改写不限次数</li>
               <li>PDF 导出不限次数</li>
@@ -429,13 +420,13 @@ function Pricing() {
             </ul>
             <Link
               href="/editor"
-              className="mt-7 block rounded-full bg-[#E5355B] px-4 py-2.5 text-center text-sm font-semibold text-white shadow-[0_10px_30px_rgba(229,53,91,0.35)] transition hover:bg-[#D01E48]"
+              className="cta-primary mt-7 block rounded-full px-4 py-2.5 text-center text-sm font-semibold shadow-[0_10px_30px_rgba(208,30,72,0.35)] transition"
             >
               购买通行证
             </Link>
           </div>
         </div>
-        <p className="mx-auto mt-6 max-w-3xl text-center text-xs leading-relaxed text-[#0E1B2A]/45">
+        <p className="mx-auto mt-6 max-w-3xl text-center text-[13px] leading-relaxed text-[#0E1B2A]/65">
           通行证为单次购买：不自动续费、不自动扣款；到期降为免费额度，已写内容保留。
         </p>
       </div>
@@ -447,7 +438,7 @@ function Faq() {
   return (
     <section id="faq" className="relative overflow-hidden bg-white">
       <div className="mx-auto max-w-3xl px-4 py-20 md:py-28">
-        <SectionTitle align="center" eyebrow="常见问题" title="你可能想先问清楚" />
+        <SectionTitle align="center" title="你可能想先问清楚" />
         <div className="mt-10 space-y-3">
           {FAQS.map((f) => (
             <details
@@ -463,7 +454,7 @@ function Faq() {
                   ＋
                 </span>
               </summary>
-              <p className="mt-3 text-sm leading-relaxed text-[#0E1B2A]/65">{f.a}</p>
+              <p className="mt-3 text-base leading-relaxed text-[#0E1B2A]/65">{f.a}</p>
             </details>
           ))}
         </div>
@@ -490,12 +481,12 @@ function CtaBand() {
         <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
           你只管去面试
         </h2>
-        <p className="mt-4 text-sm text-white/75 sm:text-base">
-          关键词、量化、排版——都已经在你导出的 PDF 里了。
+        <p className="mt-4 text-base text-white/75">
+          关键词、量化、排版，都已经在你导出的 PDF 里了。
         </p>
         <Link
           href="/editor"
-          className="mt-8 rounded-full bg-[#E5355B] px-7 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(229,53,91,0.45)] transition hover:-translate-y-0.5 hover:bg-[#D01E48]"
+          className="cta-primary mt-8 rounded-full px-7 py-3 text-sm font-semibold shadow-[0_10px_30px_rgba(208,30,72,0.45)] transition hover:-translate-y-0.5"
         >
           免费开始制作
         </Link>
@@ -506,12 +497,12 @@ function CtaBand() {
 
 function Footer() {
   return (
-    <footer className="border-t border-white/10 bg-[#0E1B2A]">
-      <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-9 text-center text-xs leading-relaxed text-white/45">
+    <footer className="bg-[#0B1626]">
+      <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-9 text-center text-[13px] leading-relaxed text-white/70">
         <p className="text-sm font-semibold text-white/80">AI 简历编辑器 · 为中文求职者制作</p>
         <p>ICP 备案号：预留位 · 公安备案号：预留位</p>
         <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-          <Link href="/privacy" className="underline-offset-2 hover:text-white/70 hover:underline">
+          <Link href="/privacy" className="underline-offset-2 hover:text-white hover:underline">
             隐私政策
           </Link>
           <span>问题反馈：支持邮箱随官网上线公布</span>

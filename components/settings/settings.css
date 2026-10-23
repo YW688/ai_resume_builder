@@ -1,0 +1,367 @@
+/* 设置页：左侧 200px 子导航（客户端切换视图），移动端变横向 chips。 */
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.settings-nav {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ui-muted);
+  font-size: 13.5px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 140ms var(--ui-ease), color 140ms var(--ui-ease),
+    border-color 140ms var(--ui-ease);
+}
+
+.settings-nav-item:hover {
+  background: var(--ui-raised);
+  color: var(--ui-text);
+}
+
+.settings-nav-item.is-active {
+  border-color: var(--ui-border);
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  font-weight: 600;
+}
+
+.settings-nav-item .nav-icon {
+  flex: none;
+  color: var(--ui-faint);
+}
+
+.settings-nav-item.is-active .nav-icon {
+  color: var(--ui-text);
+}
+
+.settings-view-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* 套餐与用量 */
+
+.plan-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  margin-top: 18px;
+}
+
+.plan-fact-label {
+  font-size: 11.5px;
+  color: var(--ui-muted);
+}
+
+.plan-fact-value {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-row + .usage-row {
+  margin-top: 16px;
+}
+
+.usage-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.usage-meter .progress {
+  flex: 1;
+}
+
+/* 结算弹窗 */
+
+.summary {
+  padding: 4px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: var(--ui-raised);
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--ui-muted);
+}
+
+.summary-row .num {
+  color: var(--ui-text);
+}
+
+.summary-row.summary-total {
+  margin-top: 2px;
+  border-top: 1px solid var(--ui-border);
+  color: var(--ui-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pay-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pay-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 140ms var(--ui-ease),
+    background-color 140ms var(--ui-ease);
+}
+
+.pay-option:hover {
+  border-color: var(--ui-control);
+}
+
+.pay-option.is-active {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+}
+
+.pay-option input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--ui-accent);
+}
+
+.pay-option .pay-check {
+  margin-left: auto;
+  color: var(--ui-accent);
+}
+
+/* 数据与隐私行 */
+
+.settings-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 0;
+  border-top: 1px solid var(--ui-rule);
+}
+
+.settings-row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.settings-row-title {
+  font-size: 13.5px;
+  font-weight: 550;
+  line-height: 1.5;
+}
+
+.settings-row-desc {
+  margin-top: 2px;
+  max-width: 560px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ui-muted);
+}
+
+.settings-row-action {
+  flex: none;
+  padding-top: 1px;
+}
+
+.danger-panel {
+  border-color: #e8b6b6;
+}
+
+@media (max-width: 900px) {
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .settings-nav {
+    position: static;
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .settings-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .settings-nav-item {
+    width: auto;
+    flex: none;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+  }
+}
+
+@media (max-width: 640px) {
+  .plan-facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .settings-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .settings-row-action {
+    align-self: flex-start;
+  }
+}
+
+
+/* 个人资料：表单 + 页眉预览并排 */
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 16px;
+  align-items: start;
+}
+
+.profile-preview-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-preview-name {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.profile-preview-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.profile-preview-contact span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile-preview-rule {
+  height: 1px;
+  margin: 16px 0;
+  background: var(--ui-rule);
+}
+
+.profile-preview-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ui-rule);
+}
+
+.profile-preview-facts div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-preview-facts strong {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1100px) {
+  .profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+
+/* -------------------------------- 账号概览 -------------------------------- */
+
+.account-summary {
+  width: 100%;
+}
+
+.account-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.account-summary-grid > div {
+  padding: 16px 20px;
+  min-width: 0;
+}
+
+.account-summary-grid > div + div {
+  border-left: 1px solid var(--ui-rule);
+}
+
+@media (max-width: 760px) {
+  .account-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .account-summary-grid > div + div {
+    border-left: 0;
+  }
+  .account-summary-grid > div:nth-child(even) {
+    border-left: 1px solid var(--ui-rule);
+  }
+  .account-summary-grid > div:nth-child(n + 3) {
+    border-top: 1px solid var(--ui-rule);
+  }
+}
