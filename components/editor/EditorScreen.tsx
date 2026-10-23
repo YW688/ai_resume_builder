@@ -145,6 +145,8 @@ export function EditorScreen() {
   const [titleValue, setTitleValue] = useState("");
 
   const scrollRef = useRef<HTMLElement | null>(null);
+  const spySuppressedRef = useRef(false);
+  const spyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fallbackNotifiedRef = useRef(false);
   const autoPrintRef = useRef(false);
   const exportRef = useRef<() => void>(() => {});
@@ -355,35 +357,79 @@ export function EditorScreen() {
 
   function goSection(id: SectionId) {
     setActiveSection(id);
+    const root = scrollRef.current;
     const node = document.getElementById(`ed-section-${id}`);
-    if (!node) return;
+    if (!root || !node) return;
+
+    // 只滚动中栏这个滚动容器。不能用 scrollIntoView：它会连带把
+    // .editor-root 这个 overflow:hidden 的外壳也程序化滚动，导致整页被顶飞、
+    // 滚轮回不来（用户反馈的“点照片卡在最底部”）。
+    const rootRect = root.getBoundingClientRect();
+    const nodeTop =
+      node.getBoundingClientRect().top - rootRect.top + root.scrollTop;
+    const maxScroll = Math.max(0, root.scrollHeight - root.clientHeight);
+    const target = Math.min(maxScroll, Math.max(0, nodeTop - 12));
+
+    // 平滑滚动期间先暂停滚动监听，避免导航高亮沿途乱跳、看起来像闪跳。
+    spySuppressedRef.current = true;
+    if (spyTimerRef.current) clearTimeout(spyTimerRef.current);
+    spyTimerRef.current = setTimeout(() => {
+      spySuppressedRef.current = false;
+      spyTimerRef.current = null;
+    }, 700);
     const reduce =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    node.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    root.scrollTo({ top: target, behavior: reduce ? "auto" : "smooth" });
   }
 
   useEffect(() => {
     const root = scrollRef.current;
     if (!root || !draft) return;
-    if (typeof IntersectionObserver === "undefined") return;
-    const nodes = SECTIONS.map((item) =>
-      document.getElementById(`ed-section-${item.id}`),
-    ).filter((node): node is HTMLElement => Boolean(node));
-    if (!nodes.length) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        const id = visible?.target.getAttribute("data-section");
-        if (id) setActiveSection(id as SectionId);
-      },
-      { root, rootMargin: "-6% 0px -68% 0px", threshold: [0, 0.15, 0.5] },
-    );
-    nodes.forEach((node) => observer.observe(node));
-    return () => observer.disconnect();
+
+    // 用滚动位置计算当前段落，而不是 IntersectionObserver：
+    // 旧的 rootMargin 触区太窄，页首 / 页尾会漏判（高亮停在“求职总结”，
+    // 点“照片”时又停在“教育经历”），滚动时还会来回闪。
+    let frame = 0;
+    const computeActive = () => {
+      frame = 0;
+      if (spySuppressedRef.current) return;
+      const maxScroll = root.scrollHeight - root.clientHeight;
+      if (maxScroll > 0 && root.scrollTop >= maxScroll - 4) {
+        const last = SECTIONS[SECTIONS.length - 1].id;
+        setActiveSection((current) => (current === last ? current : last));
+        return;
+      }
+      const rootTop = root.getBoundingClientRect().top;
+      let current = SECTIONS[0].id;
+      for (const section of SECTIONS) {
+        const node = document.getElementById(`ed-section-${section.id}`);
+        if (!node) continue;
+        const top =
+          node.getBoundingClientRect().top - rootTop + root.scrollTop;
+        if (top <= root.scrollTop + 64) current = section.id;
+      }
+      setActiveSection((previous) => (previous === current ? previous : current));
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(computeActive);
+    };
+
+    root.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      root.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, [draft?.id]);
+
+  useEffect(
+    () => () => {
+      if (spyTimerRef.current) clearTimeout(spyTimerRef.current);
+    },
+    [],
+  );
 
   /* --------------------------------- 渲染 --------------------------------- */
 

@@ -13,6 +13,7 @@
   flex-direction: column;
   height: 100svh;
   overflow: hidden;
+  overflow: clip; /* 不允许被程序化滚动；中栏 .ed-main 才是唯一滚动容器 */
   background: var(--ui-chrome);
   color: var(--ui-text);
   font-family: var(--ui-font);
@@ -235,6 +236,7 @@
   grid-template-columns: var(--ed-rail-w) minmax(0, 1fr) var(--ed-preview-w);
   grid-template-rows: minmax(0, 1fr);
   overflow: hidden;
+  overflow: clip;
 }
 
 /* ---------------------------------- 左栏 --------------------------------- */
