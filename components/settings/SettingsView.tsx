@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useClerk } from "@clerk/nextjs";
+import { authClient } from "@/lib/auth/client";
 import { createCheckoutAction, deleteAccount } from "@/lib/actions";
 
 type Usage = {
@@ -16,9 +16,14 @@ type Usage = {
 };
 
 export function SettingsView({ usage }: { usage: Usage }) {
-  const { signOut } = useClerk();
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  async function handleSignOut() {
+    setBusy(true);
+    await authClient.signOut();
+    window.location.replace("/");
+  }
 
   async function handleUpgrade() {
     setBusy(true);
@@ -37,9 +42,9 @@ export function SettingsView({ usage }: { usage: Usage }) {
     setBusy(true);
     const res = await deleteAccount();
     if (res.ok) {
-      await signOut(() => {
-        window.location.replace("/");
-      });
+      // 应用数据已删除；再结束 Neon Auth 会话并回首页
+      await authClient.signOut().catch(() => undefined);
+      window.location.replace("/");
     } else {
       setMsg(res.message ?? "注销失败");
       setBusy(false);
@@ -95,6 +100,44 @@ export function SettingsView({ usage }: { usage: Usage }) {
             <UsageRow label="AI 改写" used={usage.aiUsed} limit={usage.aiLimit} />
             <UsageRow label="PDF 下载" used={usage.exportUsed} limit={usage.exportLimit} />
           </ul>
+        </section>
+
+        {/* 账号 */}
+        <section className="mb-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-zinc-200">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-900">登录状态</h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                当前账号通过 Neon Auth 登录；退出后需要重新输入邮箱和密码。
+              </p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              disabled={busy}
+              className="shrink-0 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+            >
+              退出登录
+            </button>
+          </div>
+        </section>
+
+        {/* 账号 */}
+        <section className="mb-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-zinc-200">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-900">登录状态</h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                当前账号通过 Neon Auth 登录；退出后需要重新输入邮箱和密码。
+              </p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              disabled={busy}
+              className="shrink-0 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+            >
+              退出登录
+            </button>
+          </div>
         </section>
 
         {/* 危险区 */}

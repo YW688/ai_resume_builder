@@ -7,6 +7,7 @@ import { Icon, type IconName } from "@/components/app/icons";
 import { ConfirmDialog, IconBtn, Menu } from "@/components/app/ui";
 import { NewResumeDialog } from "@/components/app/NewResumeDialog";
 import { useWorkspace } from "@/lib/mock/store";
+import { authClient } from "@/lib/auth/client";
 import {
   daysLeft,
   formatRelative,
@@ -166,6 +167,17 @@ function SidebarFoot({
           },
           { label: "导出我的数据", icon: "download", onSelect: exportData },
           {
+            label: "退出登录",
+            icon: "arrowRight",
+            onSelect: () => {
+              void (async () => {
+                await authClient.signOut();
+                router.replace("/sign-in");
+                router.refresh();
+              })();
+            },
+          },
+          {
             label: "返回官网",
             icon: "external",
             onSelect: () => {
@@ -181,7 +193,7 @@ function SidebarFoot({
         ]}
       />
 
-      <p className="demo-note">演示工作区 · 数据只保存在本机</p>
+      <p className="demo-note">已连接 Neon · 数据实时同步</p>
 
       <ConfirmDialog
         open={resetOpen}
@@ -507,7 +519,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     ))}
                   </div>
                   <div className="popover-foot">
-                    演示数据 · 通知只保存在本机
+                    通知实时同步自 Neon Postgres
                   </div>
                 </div>
               ) : null}
@@ -616,8 +628,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span className="user-row-mail">{state.user.email}</span>
                 </span>
               </div>
+              <button
+                type="button"
+                className="plan-link"
+                style={{ marginTop: 8 }}
+                onClick={() => {
+                  void (async () => {
+                    await authClient.signOut();
+                    router.replace("/sign-in");
+                    router.refresh();
+                  })();
+                }}
+              >
+                退出登录 <Icon name="arrowRight" size={12} />
+              </button>
               <p className="demo-note" style={{ marginTop: 8 }}>
-                演示工作区 · 数据只保存在本机
+                已连接 Neon · 数据实时同步
               </p>
             </div>
           </aside>

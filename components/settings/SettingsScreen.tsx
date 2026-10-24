@@ -18,6 +18,8 @@ import {
   Toggle,
 } from "@/components/app/ui";
 import { Icon, type IconName } from "@/components/app/icons";
+import { deleteAccount } from "@/lib/actions";
+import { authClient } from "@/lib/auth/client";
 import "./settings.css";
 
 type ViewId = "profile" | "preferences" | "plan" | "data";
@@ -157,7 +159,7 @@ function ProfilePanel() {
         </div>
       </div>
         <div className="panel-foot">
-          <span>演示数据 · 只保存在本机</span>
+          <span>数据保存在 Neon Postgres</span>
           <Btn variant="primary" onClick={save}>
             保存更改
           </Btn>
@@ -291,7 +293,7 @@ function AccountSummary() {
         </div>
       </div>
       <div className="panel-foot">
-        <span>演示数据 · 只保存在本机，不包含真实账号信息</span>
+        <span>数据保存在 Neon Postgres，按登录账号隔离</span>
         <Link className="panel-link" href="/privacy">
           隐私政策 <Icon name="arrowRight" size={12} />
         </Link>
@@ -576,7 +578,7 @@ function PlanPanel() {
             </div>
           </div>
           <div className="panel-foot">
-            <span>用量统计在本地演示数据中模拟</span>
+            <span>用量统计来自 Neon 数据库</span>
           </div>
         </section>
 
@@ -704,6 +706,7 @@ function DataPanel() {
   const { exportData, resetDemo, toast } = useWorkspace();
   const [resetOpen, setResetOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   function handleReset() {
     resetDemo();
@@ -717,10 +720,32 @@ function DataPanel() {
 
   const router = useRouter();
 
-  function handleDeleteAccount() {
-    resetDemo();
-    setDeleteOpen(false);
-    router.push("/");
+  async function handleDeleteAccount() {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      const result = await deleteAccount();
+      if (!result.ok) {
+        toast({
+          title: "注销失败",
+          description: result.message ?? "请稍后重试",
+          tone: "negative",
+        });
+        return;
+      }
+      setDeleteOpen(false);
+      await authClient.signOut().catch(() => undefined);
+      router.replace("/");
+      router.refresh();
+    } catch (error) {
+      toast({
+        title: "注销失败",
+        description: error instanceof Error ? error.message : "请稍后重试",
+        tone: "negative",
+      });
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -733,7 +758,7 @@ function DataPanel() {
                 数据与隐私
               </h2>
               <p className="panel-sub">
-                所有数据只保存在当前浏览器的 localStorage，演示环境不连接后端。
+                所有数据保存在 Neon Postgres，按登录账号隔离。
               </p>
             </div>
           </div>
@@ -803,8 +828,8 @@ function DataPanel() {
               <div>
                 <div className="settings-row-title t-negative">注销账号</div>
                 <div className="settings-row-desc">
-                  注销会清除本机演示数据并返回官网，之前保存的简历、投递记录与偏好都无法恢复。
-                  正式产品中，注销还会按隐私政策级联删除服务端数据。
+                  注销会删除 Neon Auth 账号、简历、投递记录与偏好，操作不可恢复；
+                  该邮箱之后可以重新注册。
                 </div>
               </div>
               <div className="settings-row-action">
@@ -831,8 +856,8 @@ function DataPanel() {
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
         onConfirm={handleDeleteAccount}
-        title="注销账号并清除本机数据？"
-        description="注销后本机演示数据会被清除，并返回官网首页。此操作不可恢复。"
+        title="注销账号并删除全部数据？"
+        description="将删除 Neon Auth 账号与所有应用数据（简历、岗位、投递、通知、偏好），并返回官网首页。此操作不可恢复。"
         confirmLabel="确认注销"
         tone="danger"
       />

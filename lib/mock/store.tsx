@@ -9,11 +9,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { blankResumeContent, initialWorkspace, KEYWORD_DICTIONARY } from "@/lib/mock/data";
+import { blankResumeContent, KEYWORD_DICTIONARY } from "@/lib/mock/data";
 import type {
   Application,
   Job,
   Preferences,
+  Plan,
   Resume,
   ToastInput,
   User,
@@ -21,14 +22,35 @@ import type {
 } from "@/lib/mock/types";
 import { Icon } from "@/components/app/icons";
 import { IconBtn } from "@/components/app/ui";
-
-const STORAGE_KEY = "jianli-demo-v1";
-const STORAGE_VERSION = 1;
+import { RealtimeWorkspaceProvider } from "@/lib/realtime/use-live-workspace";
+// Server Actions：所有写操作先乐观更新本地 state，再落库；失败时回滚为服务端数据。
+// 模块契约见 lib/workspace/actions.ts（全部 "use server"，返回 { ok: true } | { ok: false, ... }）。
+import {
+  deleteApplicationAction,
+  deleteJobAction,
+  deleteResumeAction,
+  loadWorkspaceAction,
+  markAllNotificationsReadAction,
+  markNotificationReadAction,
+  recordUsageAction,
+  renewPlanAction,
+  resetDemoAction,
+  saveApplicationAction,
+  saveJobAction,
+  saveResumeAction,
+  updatePreferencesAction,
+  updateUserAction,
+} from "@/lib/workspace/actions";
 
 type ToastItem = ToastInput & { id: number };
 
+type ActionFailure = { ok: false; error?: string; message?: string };
+type ActionResult = { ok: true } | ActionFailure;
+
 type WorkspaceContextValue = {
   state: WorkspaceState;
+  /** 当前登录用户 id（与 Neon Auth / 数据库 users.id 一致），供 realtime 等下游使用。 */
+  userId?: string;
   resume: (id: string) => Resume | undefined;
   job: (id: string | null | undefined) => Job | undefined;
   updateResume: (id: string, patch: Partial<Resume>) => void;
@@ -63,23 +85,27 @@ type WorkspaceContextValue = {
   resetDemo: () => void;
   exportData: () => void;
   extractKeywords: (text: string) => string[];
+  /** 用服务端真实数据覆盖本地 state；供 action 失败回滚与 realtime 失效刷新使用。 */
+  refreshFromServer: () => Promise<void>;
   toast: (input: ToastInput) => void;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
-function cloneSeed(): WorkspaceState {
-  return JSON.parse(JSON.stringify(initialWorkspace)) as WorkspaceState;
-}
-
 function nowIso() {
   return new Date().toISOString();
 }
 
-function makeId(prefix: string) {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random()
-    .toString(36)
-    .slice(2, 6)}`;
+/** 数据库主键为 uuid，客户端生成的 id 必须是合法 UUID（crypto.randomUUID）。 */
+function newId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  // 极老浏览器兜底（正常浏览器 / Node 不会走到这里）。
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const rand = (Math.random() * 16) | 0;
+    return (char === "x" ? rand : (rand & 0x3) | 0x8).toString(16);
+  });
 }
 
 /** 从 JD 原文里按词典提取关键词；没有命中则取前 0 个，由页面提示补充。 */
@@ -90,47 +116,31 @@ function extractKeywordsFrom(text: string): string[] {
   ).slice(0, 12);
 }
 
-function readStorage(): WorkspaceState | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as {
-      version?: number;
-      state?: WorkspaceState;
-    };
-    if (parsed.version !== STORAGE_VERSION || !parsed.state) return null;
-    return parsed.state;
-  } catch {
-    return null;
-  }
+function failureMessage(failure: ActionFailure, fallback: string): string {
+  return failure.message || failure.error || fallback;
 }
 
-export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<WorkspaceState>(() => cloneSeed());
-  const [hydrated, setHydrated] = useState(false);
+export function WorkspaceProvider({
+  initial,
+  userId,
+  children,
+}: {
+  initial: WorkspaceState;
+  userId?: string;
+  children: React.ReactNode;
+}) {
+  // 初始状态由服务端 layout 通过 loadWorkspace(userId) 传入，客户端不再读取 localStorage。
+  const [state, setState] = useState<WorkspaceState>(initial);
+  // 写操作需要基于最新 state 计算乐观结果并拿到要持久化的完整对象，用 ref 避免回调随 state 重建。
+  const stateRef = useRef<WorkspaceState>(initial);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const toastId = useRef(0);
   const timers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
-  useEffect(() => {
-    const stored = readStorage();
-    // 演示数据在挂载后从 localStorage 恢复，属于外部存储同步，非渲染派生状态。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (stored) setState(stored);
-    setHydrated(true);
+  const commitState = useCallback((next: WorkspaceState) => {
+    stateRef.current = next;
+    setState(next);
   }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ version: STORAGE_VERSION, state }),
-      );
-    } catch {
-      // localStorage 不可用时静默降级为内存状态
-    }
-  }, [state, hydrated]);
 
   useEffect(() => {
     const map = timers.current;
@@ -163,6 +173,50 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  /** 重新拉取服务端完整 workspace。action 失败时用它把乐观更新回滚成数据库真实数据。 */
+  const refreshFromServer = useCallback(async () => {
+    try {
+      const next = await loadWorkspaceAction();
+      commitState(next);
+    } catch (error) {
+      toast({
+        title: "同步失败",
+        description:
+          error instanceof Error && error.message
+            ? error.message
+            : "无法从服务器刷新数据，请刷新页面重试。",
+        tone: "negative",
+      });
+    }
+  }, [commitState, toast]);
+
+  const reportActionError = useCallback(
+    (error: unknown, fallback: string) => {
+      toast({
+        title: "保存失败",
+        description:
+          error instanceof Error && error.message ? error.message : fallback,
+        tone: "negative",
+      });
+      void refreshFromServer();
+    },
+    [refreshFromServer, toast],
+  );
+
+  /** 非阻塞地等待一个 server action；失败时 toast 并回滚。 */
+  const persist = useCallback(
+    (promise: Promise<ActionResult>, fallback: string) => {
+      void promise
+        .then((result) => {
+          if (!result.ok) {
+            throw new Error(failureMessage(result, fallback));
+          }
+        })
+        .catch((error: unknown) => reportActionError(error, fallback));
+    },
+    [reportActionError],
+  );
+
   const resume = useCallback(
     (id: string) => state.resumes.find((item) => item.id === id),
     [state.resumes],
@@ -174,213 +228,295 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     [state.jobs],
   );
 
-  const updateResume = useCallback((id: string, patch: Partial<Resume>) => {
-    setState((prev) => ({
-      ...prev,
-      resumes: prev.resumes.map((item) =>
-        item.id === id ? { ...item, ...patch, updatedAt: nowIso() } : item,
-      ),
-    }));
-  }, []);
+  const updateResume = useCallback(
+    (id: string, patch: Partial<Resume>) => {
+      const prev = stateRef.current;
+      const target = prev.resumes.find((item) => item.id === id);
+      if (!target) return;
+      const nextResume: Resume = { ...target, ...patch, updatedAt: nowIso() };
+      commitState({
+        ...prev,
+        resumes: prev.resumes.map((item) =>
+          item.id === id ? nextResume : item,
+        ),
+      });
+      persist(saveResumeAction(nextResume), "简历未能保存，已恢复服务器数据。");
+    },
+    [commitState, persist],
+  );
 
   const createResume = useCallback<WorkspaceContextValue["createResume"]>(
     (input) => {
-      const id = makeId("r");
+      const prev = stateRef.current;
+      const id = newId();
       const at = nowIso();
-      setState((prev) => {
-        const draft: Resume = {
-          id,
-          title: input?.title?.trim() || "未命名简历",
-          targetJobId: input?.targetJobId ?? null,
-          ...blankResumeContent(),
-          fullName: prev.user.name,
-          phone: prev.user.phone,
-          email: prev.user.email,
-          city: prev.user.city,
-          templateId: input?.templateId ?? "classic",
-          accent: "blue",
-          status: "draft",
-          updatedAt: at,
-          createdAt: at,
-        };
-        return { ...prev, resumes: [draft, ...prev.resumes] };
-      });
+      const draft: Resume = {
+        id,
+        title: input?.title?.trim() || "未命名简历",
+        targetJobId: input?.targetJobId ?? null,
+        ...blankResumeContent(),
+        fullName: prev.user?.name ?? "",
+        phone: prev.user?.phone ?? "",
+        email: prev.user?.email ?? "",
+        city: prev.user?.city ?? "",
+        templateId: input?.templateId ?? "classic",
+        accent: "blue",
+        status: "draft",
+        updatedAt: at,
+        createdAt: at,
+      };
+      commitState({ ...prev, resumes: [draft, ...prev.resumes] });
+      persist(saveResumeAction(draft), "简历创建失败。");
       return id;
     },
-    [],
+    [commitState, persist],
   );
 
   const duplicateResume = useCallback<WorkspaceContextValue["duplicateResume"]>(
     (id) => {
-      const source = state.resumes.find((item) => item.id === id);
+      const prev = stateRef.current;
+      const source = prev.resumes.find((item) => item.id === id);
       if (!source) return null;
-      const newId = makeId("r");
+      const newResumeId = newId();
       const at = nowIso();
       const copy: Resume = {
-        ...JSON.parse(JSON.stringify(source)),
-        id: newId,
+        ...(JSON.parse(JSON.stringify(source)) as Resume),
+        id: newResumeId,
         title: `${source.title} 副本`,
         status: "draft",
         createdAt: at,
         updatedAt: at,
         experiences: source.experiences.map((exp) => ({
           ...exp,
-          id: makeId("e"),
+          id: newId(),
         })),
         educations: source.educations.map((edu) => ({
           ...edu,
-          id: makeId("ed"),
+          id: newId(),
         })),
       };
-      setState((prev) => ({ ...prev, resumes: [copy, ...prev.resumes] }));
-      return newId;
+      commitState({ ...prev, resumes: [copy, ...prev.resumes] });
+      persist(saveResumeAction(copy), "复制简历失败。");
+      return newResumeId;
     },
-    [state.resumes],
+    [commitState, persist],
   );
 
-  const deleteResume = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      resumes: prev.resumes.filter((item) => item.id !== id),
-      applications: prev.applications.filter((item) => item.resumeId !== id),
-    }));
-  }, []);
+  const deleteResume = useCallback(
+    (id: string) => {
+      const prev = stateRef.current;
+      if (!prev.resumes.some((item) => item.id === id)) return;
+      commitState({
+        ...prev,
+        resumes: prev.resumes.filter((item) => item.id !== id),
+        // 服务端 FK cascade 会删除关联投递，这里同步移除让 UI 立即反映。
+        applications: prev.applications.filter((item) => item.resumeId !== id),
+      });
+      persist(deleteResumeAction(id), "简历删除失败，已恢复服务器数据。");
+    },
+    [commitState, persist],
+  );
 
-  const addJob = useCallback<WorkspaceContextValue["addJob"]>((input) => {
-    const id = makeId("j");
-    const keywords =
-      input.keywords && input.keywords.length
-        ? input.keywords
-        : extractKeywordsFrom(input.jdText);
-    setState((prev) => ({
-      ...prev,
-      jobs: [
-        {
-          id,
-          company: input.company.trim(),
-          title: input.title.trim(),
-          location: input.location?.trim() || "上海",
-          salary: input.salary?.trim() || "面议",
-          source: input.source?.trim() || "手动粘贴",
-          savedAt: nowIso(),
-          keywords,
-          jdText: input.jdText,
-        },
-        ...prev.jobs,
-      ],
-    }));
-    return id;
-  }, []);
+  const addJob = useCallback<WorkspaceContextValue["addJob"]>(
+    (input) => {
+      const prev = stateRef.current;
+      const id = newId();
+      const keywords =
+        input.keywords && input.keywords.length
+          ? input.keywords
+          : extractKeywordsFrom(input.jdText);
+      const nextJob: Job = {
+        id,
+        company: input.company.trim(),
+        title: input.title.trim(),
+        location: input.location?.trim() || "上海",
+        salary: input.salary?.trim() || "面议",
+        source: input.source?.trim() || "手动粘贴",
+        savedAt: nowIso(),
+        keywords,
+        jdText: input.jdText,
+      };
+      commitState({ ...prev, jobs: [nextJob, ...prev.jobs] });
+      persist(saveJobAction(nextJob), "岗位保存失败，已恢复服务器数据。");
+      return id;
+    },
+    [commitState, persist],
+  );
 
-  const updateJob = useCallback((id: string, patch: Partial<Job>) => {
-    setState((prev) => ({
-      ...prev,
-      jobs: prev.jobs.map((item) =>
-        item.id === id ? { ...item, ...patch } : item,
-      ),
-    }));
-  }, []);
+  const updateJob = useCallback(
+    (id: string, patch: Partial<Job>) => {
+      const prev = stateRef.current;
+      const target = prev.jobs.find((item) => item.id === id);
+      if (!target) return;
+      const nextJob: Job = { ...target, ...patch };
+      commitState({
+        ...prev,
+        jobs: prev.jobs.map((item) => (item.id === id ? nextJob : item)),
+      });
+      persist(saveJobAction(nextJob), "岗位更新失败，已恢复服务器数据。");
+    },
+    [commitState, persist],
+  );
 
-  const deleteJob = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      jobs: prev.jobs.filter((item) => item.id !== id),
-      resumes: prev.resumes.map((item) =>
-        item.targetJobId === id ? { ...item, targetJobId: null } : item,
-      ),
-    }));
-  }, []);
+  const deleteJob = useCallback(
+    (id: string) => {
+      const prev = stateRef.current;
+      if (!prev.jobs.some((item) => item.id === id)) return;
+      const at = nowIso();
+      const detached = prev.resumes
+        .filter((item) => item.targetJobId === id)
+        .map((item) => ({ ...item, targetJobId: null, updatedAt: at }));
+      commitState({
+        ...prev,
+        jobs: prev.jobs.filter((item) => item.id !== id),
+        resumes: prev.resumes.map(
+          (item) =>
+            detached.find((resume) => resume.id === item.id) ?? item,
+        ),
+      });
+      // 先解除简历与岗位的关联，再删除岗位（顺序即 server action 派发顺序）。
+      detached.forEach((resume) =>
+        persist(saveResumeAction(resume), "岗位关联的简历未能更新。"),
+      );
+      persist(deleteJobAction(id), "岗位删除失败，已恢复服务器数据。");
+    },
+    [commitState, persist],
+  );
 
   const addApplication = useCallback<WorkspaceContextValue["addApplication"]>(
     (input) => {
-      const id = makeId("a");
-      setState((prev) => ({
-        ...prev,
-        applications: [{ ...input, id }, ...prev.applications],
-      }));
+      const prev = stateRef.current;
+      const id = newId();
+      const application: Application = { ...input, id };
+      commitState({ ...prev, applications: [application, ...prev.applications] });
+      persist(saveApplicationAction(application), "投递记录保存失败。");
       return id;
     },
-    [],
+    [commitState, persist],
   );
 
   const updateApplication = useCallback(
     (id: string, patch: Partial<Application>) => {
-      setState((prev) => ({
+      const prev = stateRef.current;
+      const target = prev.applications.find((item) => item.id === id);
+      if (!target) return;
+      const nextApplication: Application = { ...target, ...patch };
+      commitState({
         ...prev,
         applications: prev.applications.map((item) =>
-          item.id === id ? { ...item, ...patch } : item,
+          item.id === id ? nextApplication : item,
         ),
-      }));
+      });
+      persist(
+        saveApplicationAction(nextApplication),
+        "投递记录更新失败，已恢复服务器数据。",
+      );
     },
-    [],
+    [commitState, persist],
   );
 
-  const deleteApplication = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      applications: prev.applications.filter((item) => item.id !== id),
-    }));
-  }, []);
+  const deleteApplication = useCallback(
+    (id: string) => {
+      const prev = stateRef.current;
+      if (!prev.applications.some((item) => item.id === id)) return;
+      commitState({
+        ...prev,
+        applications: prev.applications.filter((item) => item.id !== id),
+      });
+      persist(deleteApplicationAction(id), "投递记录删除失败，已恢复服务器数据。");
+    },
+    [commitState, persist],
+  );
 
-  const updateUser = useCallback((patch: Partial<User>) => {
-    setState((prev) => ({ ...prev, user: { ...prev.user, ...patch } }));
-  }, []);
+  const updateUser = useCallback(
+    (patch: Partial<User>) => {
+      const prev = stateRef.current;
+      commitState({ ...prev, user: { ...prev.user, ...patch } });
+      persist(updateUserAction(patch), "个人信息保存失败，已恢复服务器数据。");
+    },
+    [commitState, persist],
+  );
 
-  const updatePreferences = useCallback((patch: Partial<Preferences>) => {
-    setState((prev) => ({
-      ...prev,
-      preferences: { ...prev.preferences, ...patch },
-    }));
-  }, []);
+  const updatePreferences = useCallback(
+    (patch: Partial<Preferences>) => {
+      const prev = stateRef.current;
+      commitState({
+        ...prev,
+        preferences: { ...prev.preferences, ...patch },
+      });
+      persist(updatePreferencesAction(patch), "偏好保存失败，已恢复服务器数据。");
+    },
+    [commitState, persist],
+  );
 
-  const markNotificationRead = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      notifications: prev.notifications.map((item) =>
-        item.id === id ? { ...item, read: true } : item,
-      ),
-    }));
-  }, []);
+  const markNotificationRead = useCallback(
+    (id: string) => {
+      const prev = stateRef.current;
+      const target = prev.notifications.find((item) => item.id === id);
+      if (!target || target.read) return;
+      commitState({
+        ...prev,
+        notifications: prev.notifications.map((item) =>
+          item.id === id ? { ...item, read: true } : item,
+        ),
+      });
+      persist(markNotificationReadAction(id), "通知状态更新失败。");
+    },
+    [commitState, persist],
+  );
 
   const markAllNotificationsRead = useCallback(() => {
-    setState((prev) => ({
+    const prev = stateRef.current;
+    if (prev.notifications.every((item) => item.read)) return;
+    commitState({
       ...prev,
       notifications: prev.notifications.map((item) => ({
         ...item,
         read: true,
       })),
-    }));
-  }, []);
+    });
+    persist(markAllNotificationsReadAction(), "通知状态更新失败。");
+  }, [commitState, persist]);
 
   const renewPlan = useCallback(() => {
-    setState((prev) => {
-      const base = Math.max(
-        new Date(prev.plan.expiresAt).getTime(),
-        Date.now(),
-      );
-      const expiresAt = new Date(base + 30 * 24 * 60 * 60 * 1000).toISOString();
-      return {
-        ...prev,
-        plan: {
-          ...prev.plan,
-          expiresAt,
-          orders: [
-            {
-              id: makeId("o"),
-              at: nowIso(),
-              amountFen: prev.plan.priceFen,
-              label: "30 天通行证",
-              status: "paid" as const,
-            },
-            ...prev.plan.orders,
-          ],
+    const prev = stateRef.current;
+    const base = Math.max(new Date(prev.plan.expiresAt).getTime(), Date.now());
+    const expiresAt = new Date(base + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const optimisticPlan: Plan = {
+      ...prev.plan,
+      expiresAt,
+      orders: [
+        {
+          id: newId(),
+          at: nowIso(),
+          amountFen: prev.plan.priceFen,
+          label: "30 天通行证",
+          status: "paid",
         },
-      };
-    });
-  }, []);
+        ...prev.plan.orders,
+      ],
+    };
+    commitState({ ...prev, plan: optimisticPlan });
+    void (async () => {
+      try {
+        const result = await renewPlanAction();
+        if (!result.ok) {
+          const failure = result as { error?: string; message?: string };
+          throw new Error(
+            failure.message || failure.error || "续费失败，已恢复服务器数据。",
+          );
+        }
+        // 以服务端返回的套餐为准（到期日/订单由数据库计算）。
+        commitState({ ...stateRef.current, plan: result.data });
+      } catch (error) {
+        reportActionError(error, "续费失败，已恢复服务器数据。");
+      }
+    })();
+  }, [commitState, reportActionError]);
 
   const recordAiRewrite = useCallback(() => {
-    setState((prev) => ({
+    const prev = stateRef.current;
+    commitState({
       ...prev,
       plan: {
         ...prev.plan,
@@ -389,11 +525,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           aiRewrites: prev.plan.usage.aiRewrites + 1,
         },
       },
-    }));
-  }, []);
+    });
+    persist(recordUsageAction("ai"), "AI 用量记录失败。");
+  }, [commitState, persist]);
 
   const recordExport = useCallback(() => {
-    setState((prev) => ({
+    const prev = stateRef.current;
+    commitState({
       ...prev,
       plan: {
         ...prev.plan,
@@ -402,30 +540,43 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           exports: prev.plan.usage.exports + 1,
         },
       },
-    }));
-  }, []);
+    });
+    persist(recordUsageAction("export"), "导出用量记录失败。");
+  }, [commitState, persist]);
 
   const resetDemo = useCallback(() => {
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {}
-    setState(cloneSeed());
-  }, []);
+    void (async () => {
+      try {
+        const result = await resetDemoAction();
+        if (!result.ok) {
+          const failure = result as { error?: string; message?: string };
+          throw new Error(
+            failure.message ||
+              failure.error ||
+              "重置失败，已恢复服务器数据。",
+          );
+        }
+        commitState(result.data);
+      } catch (error) {
+        reportActionError(error, "重置失败，已恢复服务器数据。");
+      }
+    })();
+  }, [commitState, reportActionError]);
 
   const exportData = useCallback(() => {
     try {
-      const blob = new Blob([JSON.stringify(state, null, 2)], {
+      const blob = new Blob([JSON.stringify(stateRef.current, null, 2)], {
         type: "application/json",
       });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = "jianli-demo-data.json";
+      anchor.download = "jianli-data.json";
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-      toast({ title: "已导出演示数据", description: "JSON 文件已下载到本地。" });
+      toast({ title: "已导出我的数据", description: "JSON 文件已下载到本地。" });
     } catch {
       toast({
         title: "导出失败",
@@ -433,11 +584,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         tone: "negative",
       });
     }
-  }, [state, toast]);
+  }, [toast]);
 
   const value = useMemo<WorkspaceContextValue>(
     () => ({
       state,
+      userId,
       resume,
       job,
       updateResume,
@@ -460,10 +612,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       resetDemo,
       exportData,
       extractKeywords: extractKeywordsFrom,
+      refreshFromServer,
       toast,
     }),
     [
       state,
+      userId,
       resume,
       job,
       updateResume,
@@ -485,13 +639,16 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       recordExport,
       resetDemo,
       exportData,
+      refreshFromServer,
       toast,
     ],
   );
 
   return (
     <WorkspaceContext.Provider value={value}>
-      {children}
+      <RealtimeWorkspaceProvider userId={userId} onServerRefresh={refreshFromServer}>
+        {children}
+      </RealtimeWorkspaceProvider>
       <div className="toast-viewport" aria-live="polite">
         {toasts.map((item) => (
           <div key={item.id} className="toast" role="status">

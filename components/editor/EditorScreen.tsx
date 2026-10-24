@@ -655,7 +655,7 @@ export function EditorScreen() {
             />
             <PhotoSection resume={draft} update={patchDraft} toast={toast} />
             <p className="ed-form-foot">
-              演示工作区 · 内容只保存在本机浏览器 · 编辑后 600ms 自动保存
+              内容保存到你的 Neon 账号 · 编辑后 600ms 自动保存
             </p>
           </form>
         </main>

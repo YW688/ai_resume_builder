@@ -153,7 +153,7 @@ export function ApplicationDialog({
       open
       onClose={onClose}
       title={application ? "编辑投递" : "记录投递"}
-      description="投递记录用于统计漏斗与面试提醒，数据只保存在本机。"
+      description="投递记录用于统计漏斗与面试提醒，数据保存在你的 Neon 数据库。"
       footer={
         <>
           <Btn variant="ghost" onClick={onClose}>

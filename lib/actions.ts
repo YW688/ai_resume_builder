@@ -1,7 +1,7 @@
 "use server";
 
 import { and, asc, desc, eq } from "drizzle-orm";
-import { clerkClient, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import {
   users,
@@ -68,8 +68,8 @@ async function getOrCreateUser(userId: string) {
   });
   if (existing) return existing;
 
-  const user = await currentUser();
-  const email = user?.emailAddresses?.[0]?.emailAddress ?? "";
+  const { data: session } = await auth.getSession();
+  const email = session?.user?.email ?? "";
   await db.insert(users).values({ id: userId, email }).onConflictDoNothing();
   return (await db.query.users.findFirst({ where: eq(users.id, userId) }))!;
 }
@@ -387,31 +387,85 @@ export async function createCheckoutAction(): Promise<ActionResult<{ url: string
   return { ok: true, data: { url } };
 }
 
+/**
+ * 彻底注销账号：
+ * 1) 调 Neon 管理 API 删除 Neon Auth（Managed Better Auth）用户；
+ * 2) 删除照片对象；
+ * 3) 删除 public.users（级联删所有业务数据）；
+ * 4) 结束当前会话。
+ *
+ * 需要服务器端管理凭证（只放在服务端环境变量里，不下发浏览器）：
+ * - NEON_API_KEY
+ * - NEON_PROJECT_ID
+ * - NEON_BRANCH_ID
+ *
+ * 如果凭证缺失，直接返回错误而不是“假注销”（避免 auth 用户残留、
+ * 同邮箱无法重新注册）。
+ */
 export async function deleteAccount(): Promise<ActionResult<null>> {
   const userId = await getUserId();
   if (!userId) return { ok: false, error: "unauthorized" };
 
-  // 删除照片对象
-  const userResumes = await db.query.resumes.findMany({
-    where: eq(resumes.userId, userId),
-    columns: { photoKey: true },
+  const apiKey = process.env.NEON_API_KEY;
+  const projectId = process.env.NEON_PROJECT_ID;
+  const branchId = process.env.NEON_BRANCH_ID;
+  if (!apiKey || !projectId || !branchId) {
+    return {
+      ok: false,
+      error: "config",
+      message: "注销功能未配置管理凭证（NEON_API_KEY / NEON_PROJECT_ID / NEON_BRANCH_ID）",
+    };
+  }
+
+  // 1) 先删 Auth 用户：失败则中止，保留应用数据，避免产生孤儿账号
+  const endpoint = `https://console.neon.tech/api/v2/projects/${projectId}/branches/${branchId}/auth/users/${userId}`;
+  const response = await fetch(endpoint, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    cache: "no-store",
   });
-  for (const r of userResumes) {
-    if (r.photoKey) await deletePhoto(r.photoKey).catch(() => {});
+  if (!response.ok && response.status !== 404) {
+    const detail = (await response.text().catch(() => "")).slice(0, 300);
+    console.error("deleteAccount: auth user delete failed", response.status, detail);
+    return {
+      ok: false,
+      error: "auth_delete_failed",
+      message: `注销失败（Neon Auth HTTP ${response.status}），请稍后重试`,
+    };
+  }
+
+  // 2) 删除照片对象（尽力而为）
+  const userResumes = await db
+    .select({ photoKey: resumes.photoKey })
+    .from(resumes)
+    .where(eq(resumes.userId, userId));
+  for (const row of userResumes) {
+    if (row.photoKey) await deletePhoto(row.photoKey).catch(() => {});
   }
 
   // 取消 Lemon Squeezy 订阅（TODO M6：调 LS API 取消活跃订阅）
 
-  // 级联删除 DB 数据
-  await db.delete(users).where(eq(users.id, userId));
+  const beforeRows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.id, userId));
+  console.log("[deleteAccount] before delete rows =", beforeRows.length, "userId =", userId);
 
-  // 删除 Clerk 用户（尽力而为）
-  try {
-    const client = await clerkClient();
-    await client.users.deleteUser(userId);
-  } catch {
-    // 若 Clerk 删除失败，本地数据已清，仅记录
+  // 3) 级联删除应用数据。
+  // 删除前可能已有并发的 loadWorkspace 请求（例如页面里的轮询刷新）在飞行中，
+  // 极端情况下会在第一次 delete 之后重新插入 users 行；这里做一次幂等补偿删除。
+  // 并发请求可能在删除瞬间完成补建，连续补偿删除 5 次覆盖该窗口。
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const deleted = await db
+      .delete(users)
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+    console.log("[deleteAccount] deleted rows =", deleted.length, "attempt =", attempt + 1);
+    if (attempt < 4) await new Promise((resolve) => setTimeout(resolve, 300));
   }
+
+  // 4) 结束当前会话
+  await auth.signOut().catch(() => undefined);
 
   return { ok: true, data: null };
 }
