@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="creditToken16Title creditToken16Desc">
+  <title id="creditToken16Title">AI 点数</title>
+  <desc id="creditToken16Desc">16 像素紧凑导出的点数图标：加粗票券轮廓与实心四角星圆点。</desc>
+  <mask id="creditToken16Hole" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+    <rect width="24" height="24" fill="#fff"/>
+    <circle cx="12" cy="12.05" r="1.7" fill="#000"/>
+  </mask>
+  <rect x="2.6" y="3.1" width="18.8" height="17.8" rx="6.4" fill="#E9F1FC" stroke="#1A6BD6" stroke-width="2"/>
+  <path d="M12 5.9c.85 3.8 2.35 5.3 6.15 6.15-3.8.85-5.3 2.35-6.15 6.15-.85-3.8-2.35-5.3-6.15-6.15 3.8-.85 5.3-2.35 6.15-6.15Z" fill="#1A6BD6" mask="url(#creditToken16Hole)"/>
+</svg>

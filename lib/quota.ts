@@ -3,6 +3,18 @@ import { and, eq, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, resumes } from "@/drizzle/schema";
 
+/**
+ * @deprecated 2026-10 起被「AI 点数」模型取代。
+ *
+ * 新逻辑见：
+ * - `lib/credits/catalog.ts`（消耗表 / 每日免费 / 套餐，客户端可读）
+ * - `lib/credits/server.ts`（原子扣点、每日重置、发放/退款、流水）
+ * - `lib/pay/index.ts`（点数套餐购买与渠道适配）
+ *
+ * 本文件只保留给旧 `lib/actions.ts` 的历史 Server Action 编译使用，
+ * 新页面/Action 不要调用这里的 `consumeAi` / `consumeExport`。
+ */
+
 export const FREE_LIMITS = {
   resumes: 1,
   ai: 2,

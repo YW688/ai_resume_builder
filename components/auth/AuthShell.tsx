@@ -1,31 +1,33 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { CreditIcon } from "@/components/credits/CreditIcon";
+import "./auth.css";
+
 function BrandMark() {
   return (
-    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25">
-      <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-        <path
-          d="M8.5 4.5h10.2l4.8 4.8v18.2H8.5z"
-          fill="#fff"
-          stroke="#fff"
-          strokeWidth="1.4"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M18.7 4.5v4.8h4.8"
-          stroke="#1A6BD6"
-          strokeWidth="1.4"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M12.2 14h7.6M12.2 18h5.6M12.2 22h4"
-          stroke="#c5d0dd"
-          strokeWidth="1.4"
-          strokeLinecap="round"
-        />
-      </svg>
-    </span>
+    <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <path
+        d="M8.5 4.5h10.2l4.8 4.8v18.2H8.5z"
+        fill="#fff"
+        stroke="#fff"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M18.7 4.5v4.8h4.8"
+        stroke="#1A6BD6"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12.2 14h7.6M12.2 18h5.6M12.2 22h4"
+        stroke="#c5d0dd"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 
@@ -44,7 +46,13 @@ const POINTS = [
   },
 ];
 
-/** 登录 / 注册共用的页面外壳：左侧品牌说明，右侧表单卡片。 */
+/**
+ * 登录 / 注册共用的页面外壳。
+ *
+ * 版式参考：左侧品牌视觉（大幅插画 + 玻璃说明卡）+ 右侧登录表单的双栏登录页；
+ * 视觉采用玻璃拟态：半透明外壳、backdrop blur、内高光与暖色光斑。
+ * 右栏保留原有 h1 / 表单 / 页脚插槽，登录与注册共用。
+ */
 export function AuthShell({
   title,
   subtitle,
@@ -57,99 +65,92 @@ export function AuthShell({
   footer?: ReactNode;
 }) {
   return (
-    <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-[#F4F8FC] px-4 py-10">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-44 -right-32 h-[540px] w-[540px] rounded-full bg-[#1A6BD6]/10 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-44 -left-32 h-[480px] w-[480px] rounded-full bg-[#FFE9B0]/50 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#1A6BD6]/30 to-transparent"
-      />
+    <main className="auth-page">
+      <div className="auth-orb auth-orb-a" aria-hidden />
+      <div className="auth-orb auth-orb-b" aria-hidden />
+      <div className="auth-orb auth-orb-c" aria-hidden />
 
-      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_-28px_rgba(14,27,42,0.35)] ring-1 ring-[#e2e8f0] lg:grid-cols-[1.05fr_1fr]">
-        <aside className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[#1A6BD6] via-[#1A6BD6] to-[#0E1B2A] p-10 text-white lg:flex">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -top-24 -right-16 h-72 w-72 rounded-full bg-white/10 blur-2xl"
+      <div className="auth-frame">
+        <aside className="auth-visual" aria-label="产品介绍">
+          <Image
+            src="/art/feature-parse-3.jpg"
+            alt="短发少女在蓝天下伸出手，面前浮着一张半透明的简历卡片"
+            fill
+            priority
+            sizes="(max-width: 1023px) 100vw, 56vw"
+            className="auth-visual-img"
           />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -bottom-24 -left-10 h-64 w-64 rounded-full bg-[#E5355B]/20 blur-2xl"
-          />
-          <div className="relative">
-            <div className="flex items-center gap-3">
-              <BrandMark />
+          <div className="auth-visual-tint" aria-hidden />
+          <div className="auth-visual-sheen" aria-hidden />
+
+          <div className="auth-visual-content">
+            <div className="auth-brand">
+              <span className="auth-brand-mark">
+                <BrandMark />
+              </span>
               <div>
-                <p className="text-[15px] font-semibold tracking-tight">
-                  AI 简历编辑器
-                </p>
-                <p className="text-[11px] tracking-[0.18em] text-white/60">
-                  中文求职 · JD 驱动改写
-                </p>
+                <p className="auth-brand-name">AI 简历编辑器</p>
+                <p className="auth-brand-sub">中文求职 · JD 驱动改写</p>
               </div>
             </div>
 
-            <h2 className="mt-14 max-w-[15em] text-[30px] leading-[1.25] font-semibold tracking-tight">
-              把目标 JD，变成简历里的加分项
-            </h2>
-            <p className="mt-4 max-w-[22em] text-[13.5px] leading-relaxed text-white/70">
-              登录后，你的简历、目标岗位与投递记录会保存在账号下，换设备也能继续。
-            </p>
+            <div className="auth-visual-copy">
+              <h2>
+                把目标 JD，
+                <br />
+                变成简历里的加分项
+              </h2>
+              <p>
+                登录后，简历、目标岗位与投递记录都保存在账号下；换设备也能接着改。
+              </p>
+            </div>
+
+            <ul className="auth-features">
+              {POINTS.map((point) => (
+                <li key={point.title} className="auth-feature">
+                  <span className="auth-feature-dot" aria-hidden />
+                  <div>
+                    <strong>{point.title}</strong>
+                    <span>{point.desc}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="auth-badges" aria-label="计费方式">
+              <span className="auth-badge">
+                <CreditIcon size={16} tone="member" decorative />
+                每日免费 <b>5 点</b>
+              </span>
+              <span className="auth-badge">
+                <CreditIcon size={16} tone="free" decorative />
+                整份简历生成 <b>2 点</b>
+              </span>
+              <span className="auth-badge">PDF 导出免费</span>
+            </div>
+
+            <p className="auth-trust">密码由 Neon Auth 托管，本应用不存储明文密码。</p>
           </div>
-
-          <ul className="relative mt-12 space-y-5">
-            {POINTS.map((point) => (
-              <li key={point.title} className="flex gap-3">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FFE9B0]" />
-                <div>
-                  <p className="text-[13.5px] font-semibold text-white/95">
-                    {point.title}
-                  </p>
-                  <p className="mt-0.5 text-[12.5px] leading-relaxed text-white/60">
-                    {point.desc}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          <p className="relative mt-12 text-[11px] text-white/40">
-            密码由 Neon Auth 托管，本应用不存储明文密码。
-          </p>
         </aside>
 
-        <div className="flex flex-col justify-center p-7 sm:p-10">
-          <div className="mb-8 flex items-center justify-between">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-[12.5px] text-[#58657a] transition hover:text-[#0E1B2A]"
-            >
+        <section className="auth-form-pane">
+          <div className="auth-topbar">
+            <Link href="/" className="auth-back">
               <span aria-hidden>←</span> 返回官网
             </Link>
-            <span className="rounded-full bg-[#eef1f5] px-2.5 py-1 text-[11px] font-medium text-[#58657a]">
-              Neon Auth
-            </span>
+            <span className="auth-auth-chip">Neon Auth 托管</span>
           </div>
 
-          <h1 className="text-[26px] leading-tight font-semibold tracking-tight text-[#0E1B2A]">
-            {title}
-          </h1>
-          <p className="mt-2 text-[13.5px] text-[#58657a]">{subtitle}</p>
+          <div className="auth-form-head">
+            <h1>{title}</h1>
+            <p>{subtitle}</p>
+          </div>
 
-          <div className="mt-7">{children}</div>
+          <div className="auth-form-body">{children}</div>
 
-          {footer ? (
-            <div className="mt-6 border-t border-[#eef1f5] pt-5 text-[13px] text-[#58657a]">
-              {footer}
-            </div>
-          ) : null}
-        </div>
+          {footer ? <div className="auth-foot">{footer}</div> : null}
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

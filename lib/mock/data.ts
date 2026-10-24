@@ -58,28 +58,43 @@ export const initialWorkspace: WorkspaceState = {
     autoKeywordCheck: true,
   },
   plan: {
-    name: "30 天通行证",
+    name: "点数会员",
     startedAt: "2026-10-06T10:12:00+08:00",
-    expiresAt: "2026-11-05T10:12:00+08:00",
-    priceFen: 1900,
+    expiresAt: "2027-04-04T10:12:00+08:00",
+    priceFen: 2990,
     autoRenew: false,
     usage: { aiRewrites: 18, exports: 4 },
     orders: [
       {
         id: "o2",
         at: "2026-10-06T10:12:00+08:00",
-        amountFen: 1900,
-        label: "30 天通行证",
+        amountFen: 2990,
+        label: "求职包 · 45 点",
         status: "paid",
+        credits: 45,
+        packageId: "jobhunt",
       },
       {
         id: "o1",
-        at: "2026-09-05T09:30:00+08:00",
-        amountFen: 1900,
-        label: "30 天通行证",
+        at: "2026-09-20T09:30:00+08:00",
+        amountFen: 990,
+        label: "体验包 · 12 点",
         status: "paid",
+        credits: 12,
+        packageId: "starter",
       },
     ],
+  },
+  // 演示账号的点数：已购买 45 点，昨天用掉一部分，今天免费额度用掉 1 点。
+  credits: {
+    balance: 18,
+    dailyFree: 5,
+    dailyUsed: 1,
+    dailyRemaining: 4,
+    resetAt: "2026-10-24T00:00:00+08:00",
+    plan: "member",
+    expiresAt: "2027-04-04T10:12:00+08:00",
+    updatedAt: "2026-10-23T09:42:00+08:00",
   },
   jobs: [
     {
@@ -413,8 +428,8 @@ export const initialWorkspace: WorkspaceState = {
   notifications: [
     {
       id: "n1",
-      title: "通行证还有 13 天到期",
-      body: "11 月 5 日到期，到期后降为免费额度；已写内容会保留。",
+      title: "求职包还剩 18 点",
+      body: "点数长期有效（当前到期日 2027-04-04）。每天还有 5 点免费额度，AI 生成一份简历消耗 2 点。",
       at: "2026-10-23T08:00:00+08:00",
       read: false,
       kind: "plan",

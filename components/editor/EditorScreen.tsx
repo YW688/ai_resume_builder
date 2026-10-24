@@ -14,8 +14,10 @@ import {
 } from "react";
 import { A4Page } from "@/components/app/A4Page";
 import { NewResumeButton } from "@/components/app/NewResumeDialog";
-import { Btn, EmptyState, IconBtn, Pill, Progress } from "@/components/app/ui";
+import { Btn, EmptyState, IconBtn, Modal, Pill, Progress } from "@/components/app/ui";
 import { Icon } from "@/components/app/icons";
+import { generateResumeAction, polishSkillsAction } from "@/lib/ai/actions";
+import { CREDIT_FEATURES } from "@/lib/credits/catalog";
 import {
   computeCompletion,
   computeMatch,
@@ -100,7 +102,7 @@ export function EditorScreen() {
     resume: findResume,
     job: findJob,
     updateResume,
-    recordAiRewrite,
+    applyCredits,
     recordExport,
     toast,
   } = useWorkspace();
@@ -141,6 +143,9 @@ export function EditorScreen() {
   const [highlight, setHighlight] = useState(true);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [rewriteTarget, setRewriteTarget] = useState<RewriteTarget | null>(null);
+  const [generateOpen, setGenerateOpen] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [skillsPolishing, setSkillsPolishing] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
 
@@ -216,6 +221,10 @@ export function EditorScreen() {
   const match = draft && targetJob ? computeMatch(draft, targetJob) : null;
   const completion = draft ? computeCompletion(draft) : 0;
   const previewKeywords = targetJob?.keywords ?? [];
+  const generateCost = CREDIT_FEATURES.resume_generate.cost;
+  const skillsCost = CREDIT_FEATURES.skills_polish.cost;
+  const aiAvailable = state.credits.dailyRemaining + state.credits.balance;
+  const aiCreditsLine = `当前可用 ${aiAvailable} 点（免费 ${state.credits.dailyRemaining} + 余额 ${state.credits.balance}）`;
 
   const sectionDone = useMemo(() => {
     if (!draft) return null;
@@ -281,7 +290,27 @@ export function EditorScreen() {
     return () => clearTimeout(timer);
   }, [printRequested, draft]);
 
-  /* --------------------------------- AI 改写 -------------------------------- */
+  /* --------------------------------- AI 润色 -------------------------------- */
+
+  /** 打开润色弹窗：先把当前草稿落盘，避免服务端读到 600ms 前的旧内容。 */
+  function openRewrite(target: RewriteTarget) {
+    flushSave();
+    setRewriteTarget(target);
+  }
+
+  /** 立即把草稿写回 store 并落库（AI 结果 / 模板切换都用它，避免防抖延迟）。 */
+  function commitDraft(next: Resume, patch: Partial<Resume> = toPatch(next)) {
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    draftRef.current = next;
+    dirtyRef.current = false;
+    setDraft(next);
+    updateResume(next.id, patch);
+    setSavedClock(formatTime(new Date().toISOString()));
+    setSaveState("saved");
+  }
 
   function applyRewrite(text: string) {
     const target = rewriteTarget;
@@ -298,20 +327,10 @@ export function EditorScreen() {
                 : item,
             ),
           };
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = null;
-    }
-    draftRef.current = next;
-    dirtyRef.current = false;
-    setDraft(next);
-    updateResume(next.id, toPatch(next));
-    recordAiRewrite();
-    setSavedClock(formatTime(new Date().toISOString()));
-    setSaveState("saved");
+    commitDraft(next);
     toast({
-      title: "已应用改写",
-      description: "本次使用 1 次 AI 改写，内容已保存。",
+      title: "已应用润色结果",
+      description: "内容已保存，点数余额已按本次消耗同步。",
       tone: "positive",
     });
   }
@@ -320,21 +339,158 @@ export function EditorScreen() {
     const current = draftRef.current;
     if (!current) return;
     const next = { ...current, ...patch };
-    if (saveTimerRef.current) {
-      clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = null;
-    }
-    draftRef.current = next;
-    dirtyRef.current = false;
-    setDraft(next);
-    updateResume(next.id, patch);
-    setSavedClock(formatTime(new Date().toISOString()));
-    setSaveState("saved");
+    commitDraft(next, patch);
     toast({
       title: "已应用模板",
       description: "预览已更新，简历内容不变。",
       tone: "positive",
     });
+  }
+
+  /* ------------------------------ AI 整份生成 ------------------------------ */
+
+  function askGenerate() {
+    if (!draft) return;
+    if (!targetJob || !targetJob.jdText.trim()) {
+      toast({
+        title: "先选择目标岗位",
+        description:
+          "AI 生成整份简历需要目标岗位的 JD 作为依据。请在顶栏选择岗位，或先到「职位」页添加带 JD 的岗位。",
+        tone: "negative",
+      });
+      return;
+    }
+    if (aiAvailable < generateCost) {
+      toast({
+        title: "点数不足",
+        description: `整份生成需要 ${generateCost} 点，${aiCreditsLine}。可到账户设置购买点数包。`,
+        tone: "negative",
+      });
+      return;
+    }
+    flushSave();
+    setGenerateOpen(true);
+  }
+
+  async function runGenerate() {
+    const current = draftRef.current;
+    if (!current || !targetJob || !targetJob.jdText.trim()) return;
+    if (aiAvailable < generateCost) {
+      toast({
+        title: "点数不足",
+        description: `整份生成需要 ${generateCost} 点，${aiCreditsLine}。`,
+        tone: "negative",
+      });
+      return;
+    }
+
+    setGenerateOpen(false);
+    setAiGenerating(true);
+    try {
+      const response = await generateResumeAction({
+        resumeId: current.id,
+        jd: targetJob.jdText,
+      });
+      if (!response.ok) {
+        if (response.credits) applyCredits(response.credits);
+        toast({
+          title: "整份生成失败",
+          description: response.message,
+          tone: "negative",
+        });
+        return;
+      }
+
+      const latest = draftRef.current ?? current;
+      const descriptionById = new Map(
+        response.data.experiences.map((item) => [item.id, item.description]),
+      );
+      const next: Resume = {
+        ...latest,
+        summary: response.data.summary,
+        skills: response.data.skills,
+        experiences: latest.experiences.map((item) => {
+          const description = descriptionById.get(item.id);
+          return description ? { ...item, description } : item;
+        }),
+      };
+      commitDraft(next);
+      applyCredits(response.data.credits);
+      const remaining = response.data.credits.dailyRemaining + response.data.credits.balance;
+      toast({
+        title: `整份简历已生成（消耗 ${response.data.cost} 点）`,
+        description: `已写入求职总结、技能与所有经历描述；当前可用 ${remaining} 点（免费 ${response.data.credits.dailyRemaining} + 余额 ${response.data.credits.balance}）。内容仍可手动修改。`,
+        tone: "positive",
+      });
+    } catch (error) {
+      console.error("[editor] 整份生成失败", error);
+      toast({
+        title: "整份生成失败",
+        description: "请求没有完成，请检查网络后重试（若已扣点数会自动退回）。",
+        tone: "negative",
+      });
+    } finally {
+      setAiGenerating(false);
+    }
+  }
+
+  /* ------------------------------- AI 技能整理 ------------------------------ */
+
+  async function polishSkills() {
+    const current = draftRef.current;
+    if (!current) return;
+    if (!targetJob || !targetJob.jdText.trim()) {
+      toast({
+        title: "先选择目标岗位",
+        description: "AI 整理技能需要目标岗位 JD 作为依据。",
+        tone: "negative",
+      });
+      return;
+    }
+    if (aiAvailable < skillsCost) {
+      toast({
+        title: "点数不足",
+        description: `整理技能需要 ${skillsCost} 点，${aiCreditsLine}。可到账户设置购买点数包。`,
+        tone: "negative",
+      });
+      return;
+    }
+
+    flushSave();
+    setSkillsPolishing(true);
+    try {
+      const response = await polishSkillsAction({
+        resumeId: current.id,
+        jd: targetJob.jdText,
+      });
+      if (!response.ok) {
+        if (response.credits) applyCredits(response.credits);
+        toast({
+          title: "技能整理失败",
+          description: response.message,
+          tone: "negative",
+        });
+        return;
+      }
+      const latest = draftRef.current ?? current;
+      commitDraft({ ...latest, skills: response.data.skills });
+      applyCredits(response.data.credits);
+      const remaining = response.data.credits.dailyRemaining + response.data.credits.balance;
+      toast({
+        title: `技能栏已整理（消耗 ${response.data.cost} 点）`,
+        description: `已保留你真实掌握的技能并规范化写法，当前可用 ${remaining} 点。技能仍可手动增删。`,
+        tone: "positive",
+      });
+    } catch (error) {
+      console.error("[editor] 技能整理失败", error);
+      toast({
+        title: "技能整理失败",
+        description: "请求没有完成，请检查网络后重试（若已扣点数会自动退回）。",
+        tone: "negative",
+      });
+    } finally {
+      setSkillsPolishing(false);
+    }
   }
 
   /* --------------------------------- 标题 --------------------------------- */
@@ -633,18 +789,58 @@ export function EditorScreen() {
             noValidate
             onSubmit={(event) => event.preventDefault()}
           >
+            <section className="ed-ai-bar" aria-label="AI 简历助手">
+              <div className="ed-ai-bar-main">
+                <span className="ed-ai-bar-title">
+                  <Icon name="sparkles" size={15} />
+                  AI 简历助手
+                </span>
+                <span className="ed-ai-bar-desc">
+                  按目标岗位 JD 生成整份简历（摘要 + 技能 + 全部经历）· 消耗{" "}
+                  {generateCost} 点
+                </span>
+              </div>
+              <div className="ed-ai-bar-actions">
+                <span
+                  className={`ed-ai-bar-credits${aiAvailable < generateCost ? " is-low" : ""}`}
+                >
+                  {aiCreditsLine}
+                </span>
+                {aiAvailable < generateCost ? (
+                  <Link className="ed-ai-inline-link" href="/dashboard/settings">
+                    去购买点数
+                  </Link>
+                ) : null}
+                <Btn
+                  variant="primary"
+                  size="sm"
+                  icon="sparkles"
+                  loading={aiGenerating}
+                  disabled={aiGenerating}
+                  title={
+                    targetJob
+                      ? `消耗 ${generateCost} 点，按 JD 生成整份简历`
+                      : "先在顶栏选择目标岗位"
+                  }
+                  onClick={askGenerate}
+                >
+                  AI 生成整份简历（{generateCost} 点）
+                </Btn>
+              </div>
+            </section>
+
             <BasicInfoSection resume={draft} update={patchDraft} />
             <SummarySection
               resume={draft}
               update={patchDraft}
               job={targetJob}
-              onRewrite={setRewriteTarget}
+              onRewrite={openRewrite}
             />
             <ExperienceSection
               resume={draft}
               update={patchDraft}
               job={targetJob}
-              onRewrite={setRewriteTarget}
+              onRewrite={openRewrite}
             />
             <EducationSection resume={draft} update={patchDraft} />
             <SkillsSection
@@ -652,6 +848,9 @@ export function EditorScreen() {
               update={patchDraft}
               missing={match?.missing ?? []}
               job={targetJob}
+              onPolishSkills={() => void polishSkills()}
+              polishing={skillsPolishing}
+              credits={state.credits}
             />
             <PhotoSection resume={draft} update={patchDraft} toast={toast} />
             <p className="ed-form-foot">
@@ -706,6 +905,75 @@ export function EditorScreen() {
         </div>
       ) : null}
 
+      <Modal
+        open={generateOpen}
+        onClose={() => setGenerateOpen(false)}
+        title="AI 生成整份简历"
+        description={`将按「${targetJob ? `${targetJob.company} · ${targetJob.title}` : "目标岗位"}」的 JD 重写整份简历内容。`}
+        size="md"
+        footer={
+          <>
+            <Btn variant="ghost" onClick={() => setGenerateOpen(false)}>
+              取消
+            </Btn>
+            {aiAvailable < generateCost ? (
+              <Link className="btn btn-primary btn-sm" href="/dashboard/settings">
+                去购买点数
+              </Link>
+            ) : (
+              <Btn
+                variant="primary"
+                icon="sparkles"
+                loading={aiGenerating}
+                disabled={aiGenerating}
+                onClick={() => void runGenerate()}
+              >
+                确认生成（{generateCost} 点）
+              </Btn>
+            )}
+          </>
+        }
+      >
+        <div className="ed-ai-confirm">
+          <div className="ed-ai-confirm-row">
+            <span>目标岗位</span>
+            <strong>
+              {targetJob ? `${targetJob.company} · ${targetJob.title}` : "未选择"}
+            </strong>
+          </div>
+          <div className="ed-ai-confirm-row">
+            <span>本次消耗</span>
+            <strong className="num">{generateCost} 点</strong>
+          </div>
+          <div className="ed-ai-confirm-row">
+            <span>可用点数</span>
+            <strong className="num">
+              {aiAvailable} 点（免费 {state.credits.dailyRemaining} + 余额{" "}
+              {state.credits.balance}）
+            </strong>
+          </div>
+          <div className="ed-ai-confirm-row">
+            <span>将覆盖</span>
+            <strong>求职总结、技能栏、所有工作 / 项目经历描述</strong>
+          </div>
+          <p className="ed-ai-confirm-note">
+            教育经历与基本信息不会改动。生成结果仍需要你逐段核对真实性：AI 不会编造公司、学历与数字，但没有数字时会用可验证的规模表达。
+          </p>
+          {aiAvailable < generateCost ? (
+            <div className="ed-ai-notice" role="alert">
+              <span className="ed-ai-notice-title">
+                <Icon name="warning" size={14} />
+                点数不足
+              </span>
+              <span className="ed-ai-notice-text">
+                本次需要 {generateCost} 点，当前可用 {aiAvailable} 点。可以明天再试（每日赠送{" "}
+                {state.credits.dailyFree} 点），或购买点数包后立即继续。
+              </span>
+            </div>
+          ) : null}
+        </div>
+      </Modal>
+
       <TemplateDialog
         open={templateOpen}
         onClose={() => setTemplateOpen(false)}
@@ -719,8 +987,11 @@ export function EditorScreen() {
         target={rewriteTarget}
         resume={draft}
         job={targetJob}
+        credits={state.credits}
         onClose={() => setRewriteTarget(null)}
         onApply={applyRewrite}
+        onCreditsChange={applyCredits}
+        toast={toast}
       />
 
       {/* 打印只输出这一张无缩放的 A4 页（样式见 app-ui.css 的 @media print） */}

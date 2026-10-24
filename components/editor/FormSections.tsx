@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
 import { Btn, ConfirmDialog, Field, IconBtn, KeywordChip } from "@/components/app/ui";
 import { Icon } from "@/components/app/icons";
+import { CREDIT_FEATURES, type CreditsState } from "@/lib/credits/catalog";
 import type { Education, Experience, Resume, ToastInput } from "@/lib/mock/types";
 import type { RewriteTarget } from "./RewriteDialog";
 
@@ -156,7 +158,11 @@ export function SummarySection({
           size="sm"
           icon="sparkle"
           disabled={!job}
-          title={job ? "对照目标岗位 JD 润色这段总结" : "先选择目标岗位，AI 才能对照 JD 润色"}
+          title={
+            job
+              ? "对照目标岗位 JD 润色这段总结（消耗 1 点）"
+              : "先选择目标岗位，AI 才能对照 JD 润色"
+          }
           onClick={() =>
             onRewrite({
               mode: "summary",
@@ -165,7 +171,7 @@ export function SummarySection({
             })
           }
         >
-          AI 润色
+          AI 润色（1 点）
         </Btn>
       }
     >
@@ -371,7 +377,11 @@ export function ExperienceSection({
                 size="sm"
                 icon="sparkles"
                 disabled={!job}
-                title={job ? "对照目标岗位 JD 改写这段经历" : "先选择目标岗位，AI 才能对照 JD 改写"}
+                title={
+                  job
+                    ? "对照目标岗位 JD 润色这段经历（消耗 1 点）"
+                    : "先选择目标岗位，AI 才能对照 JD 润色"
+                }
                 onClick={() =>
                   onRewrite({
                     mode: "experience",
@@ -381,11 +391,15 @@ export function ExperienceSection({
                   })
                 }
               >
-                AI 对照 JD 改写
+                AI 润色（1 点）
               </Btn>
               {!job ? (
                 <span className="t-11 t-muted">需要先在顶栏选择目标岗位</span>
-              ) : null}
+              ) : (
+                <span className="t-11 t-muted">
+                  只润色你真实填写的内容，不会编造数字
+                </span>
+              )}
             </div>
           </article>
         ))}
@@ -570,14 +584,33 @@ export function SkillsSection({
   update,
   missing,
   job,
+  onPolishSkills,
+  polishing = false,
+  credits,
 }: {
   resume: Resume;
   update: DraftUpdate;
   missing: string[];
   job?: { company: string; title: string };
+  /** 调用 polishSkillsAction（EditorScreen 负责扣点与写回）。 */
+  onPolishSkills?: () => void;
+  polishing?: boolean;
+  credits?: CreditsState;
 }) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const cost = CREDIT_FEATURES.skills_polish.cost;
+  const available = credits ? credits.dailyRemaining + credits.balance : null;
+  const canAfford = available === null ? true : available >= cost;
+  const polishDisabled = !job || polishing || !canAfford || !onPolishSkills;
+  const polishHint = !job
+    ? "先选择目标岗位，AI 才能按 JD 整理技能"
+    : !canAfford
+      ? `点数不足：本次需要 ${cost} 点，当前可用 ${available ?? 0} 点`
+      : polishing
+        ? "正在按岗位族与 JD 整理技能…"
+        : `AI 按岗位族与 JD 整理技能（消耗 ${cost} 点）`;
 
   function addSkill(raw: string) {
     const skill = raw.trim();
@@ -604,6 +637,19 @@ export function SkillsSection({
       id="skills"
       title="技能"
       sub="回车添加，点击 × 删除；技能会参与匹配度计算。"
+      actions={
+        <Btn
+          variant="secondary"
+          size="sm"
+          icon="sparkles"
+          loading={polishing}
+          disabled={polishDisabled}
+          title={polishHint}
+          onClick={onPolishSkills}
+        >
+          AI 整理技能（{cost} 点）
+        </Btn>
+      }
     >
       <div className="ed-tag-input">
         <div className="ed-tags">
@@ -655,6 +701,27 @@ export function SkillsSection({
           {error}
         </div>
       ) : null}
+
+      <div className="ed-ai-inline" role="note">
+        <span className="ed-ai-inline-main">
+          <Icon name="sparkles" size={13} />
+          AI 整理技能消耗 {cost} 点
+          {credits ? (
+            <span className="t-muted">
+              {" "}
+              · 当前可用 {available} 点（免费 {credits.dailyRemaining} + 余额{" "}
+              {credits.balance}）
+            </span>
+          ) : null}
+        </span>
+        {!canAfford ? (
+          <Link className="ed-ai-inline-link" href="/dashboard/settings">
+            去购买点数
+          </Link>
+        ) : !job ? (
+          <span className="t-11 t-muted">先选择目标岗位</span>
+        ) : null}
+      </div>
 
       <div className="ed-skill-hint">
         <div className="ed-skill-hint-title">

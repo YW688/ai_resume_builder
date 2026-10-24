@@ -176,21 +176,31 @@ function WorkspaceSession({ userId, onServerRefresh, children }: SessionProps) {
   );
 
   // 降级：平台侧 Realtime 公网入口不可用（例如 ALB 403）时，WebSocket 会一直
-  // 停在 connecting/error。这里在 10s 后启动 20s 一次的服务端轮询刷新，
-  // 保证其他端/后台写入仍能反映到 UI；连接恢复为 connected 时自动停止。
+  // 停在 connecting/error。这里在 8s 后启动 20s 一次的服务端轮询刷新，
+  // 保证其他端/后台写入仍能反映到 UI；连接恢复为 connected 时跳过刷新。
+  //
+  // 注意：不能用 status 作为 effect 依赖 —— WebSocket 重试会让 status 在
+  // connecting/error 之间反复变化，effect 每次重建会把 10s 计时器不断重置，
+  // 轮询永远启动不了。status 放进 ref，只在 interval 内读取。
+  const statusRef = useRef(status);
   useEffect(() => {
-    if (!userId || !onServerRefresh || status === "connected") return;
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    if (!userId || !onServerRefresh) return;
     let interval: ReturnType<typeof setInterval> | null = null;
     const timer = setTimeout(() => {
       interval = setInterval(() => {
+        if (statusRef.current === "connected") return;
         void Promise.resolve(onServerRefresh()).catch(() => undefined);
       }, 20_000);
-    }, 10_000);
+    }, 8_000);
     return () => {
       clearTimeout(timer);
       if (interval) clearInterval(interval);
     };
-  }, [userId, onServerRefresh, status]);
+  }, [userId, onServerRefresh]);
 
   const handleSnapshot = useCallback(
     (next: {

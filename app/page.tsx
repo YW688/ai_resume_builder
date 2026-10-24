@@ -1,6 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 import Hero from "../components/landing/Hero";
+import {
+  CREDIT_COST_ROWS,
+  CREDIT_PACKAGES,
+  DAILY_FREE_CREDITS,
+  actionsPerPackage,
+  formatPoints,
+  formatYuan,
+  packageDiscountPercent,
+  pointsUnitPriceFen,
+} from "@/lib/credits/catalog";
 
 const STEPS = [
   {
@@ -82,8 +92,12 @@ const FAQS = [
     a: "当前版本提供一套干净的 A4 模板，重点打磨内容与排版；更多模板在后续版本的计划中。",
   },
   {
-    q: "通行证到期怎么办？",
-    a: "到期自动降回免费额度（1 份简历、2 次改写、2 次导出），不自动扣款；已经写好的简历内容保留，可以继续查看与编辑。",
+    q: "点数是永久的吗？",
+    a: "购买的点数在套餐有效期内可用：体验包 90 天、求职包 180 天、冲刺包 365 天，过期未用完会失效。所有套餐都是一次性购买，不自动续费、不会自动扣款；已经写好的简历内容始终保留，可以继续查看与编辑。",
+  },
+  {
+    q: "每天免费额度怎么算？",
+    a: `按北京时间自然日，每天 0 点赠送 ${DAILY_FREE_CREDITS} 点免费额度，不累积、不可转赠；AI 操作会先扣当日免费额度，用完后扣购买的点数。PDF 导出不扣点，也不限次数。`,
   },
 ];
 
@@ -380,21 +394,32 @@ function Pricing() {
   return (
     <section id="pricing" className="relative overflow-hidden bg-[#F4F8FC]">
       <SoftGlow className="right-0 top-10 h-64 w-64 bg-hero-pink/10" />
-      <div className="relative mx-auto max-w-5xl px-4 py-20 md:py-28">
+      <div className="relative mx-auto max-w-6xl px-4 py-20 md:py-28">
         <SectionTitle
           align="center"
           eyebrow="价格"
-          title="一次购买，不含自动续费"
-          desc="免费额度足够写完第一份简历；需要更多次数时，再买 30 天通行证。"
+          title="按点付费，不自动续费"
+          desc={`每天赠送 ${DAILY_FREE_CREDITS} 点免费额度；AI 操作按点扣除，PDF 导出始终免费。点数一次性购买，用完再买。`}
         />
-        <div className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2">
-          <div className="glass-panel rounded-[28px] p-7">
-            <h3 className="font-semibold text-[#0E1B2A]">免费</h3>
-            <p className="mt-2 text-4xl font-bold tracking-tight text-[#0E1B2A]">¥0</p>
-            <ul className="mt-5 space-y-2.5 text-base text-[#0E1B2A]/65">
-              <li>1 份简历</li>
-              <li>2 次 AI 改写</li>
-              <li>2 次 PDF 导出</li>
+        <div className="mt-12 grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {/* 免费额度 */}
+          <div className="glass-panel flex flex-col rounded-[24px] p-6">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-semibold text-[#0E1B2A]">免费</h3>
+              <span className="rounded-full border border-[#1A6BD6]/20 bg-[#1A6BD6]/5 px-2.5 py-0.5 text-[12px] font-medium text-[#1A6BD6]">
+                每天刷新
+              </span>
+            </div>
+            <p className="mt-2 text-4xl font-bold tracking-tight text-[#0E1B2A]">
+              ¥0
+            </p>
+            <p className="mt-1 text-[13px] font-medium text-[#0E1B2A]/60">
+              每天 {DAILY_FREE_CREDITS} 点免费额度
+            </p>
+            <ul className="mt-5 flex-1 space-y-2.5 text-base text-[#0E1B2A]/65">
+              <li>北京时间 0 点重置，不累积</li>
+              <li>整份生成 2 点 / 单段润色 1 点</li>
+              <li>PDF 导出不扣点</li>
             </ul>
             <Link
               href="/editor"
@@ -403,31 +428,94 @@ function Pricing() {
               免费开始
             </Link>
           </div>
-          <div className="relative overflow-hidden rounded-[28px] bg-[#0E1B2A] p-7 text-white shadow-[0_24px_60px_rgba(6,20,40,0.28)]">
-            <SoftGlow className="-right-8 -top-8 h-40 w-40 bg-hero-pink/30" />
-            <span className="absolute right-5 top-5 rounded-full bg-hero-pink-cta px-2.5 py-0.5 text-[13px] font-semibold text-white">
-              推荐
-            </span>
-            <h3 className="font-semibold">30 天通行证</h3>
-            <p className="mt-2 text-4xl font-bold tracking-tight">
-              ¥19<span className="text-sm font-normal text-white/50"> / 30 天</span>
-            </p>
-            <ul className="mt-5 space-y-2.5 text-base text-white/70">
-              <li>简历数量不限</li>
-              <li>AI 改写不限次数</li>
-              <li>PDF 导出不限次数</li>
-              <li>不自动续费，到期自动降回免费</li>
-            </ul>
-            <Link
-              href="/editor"
-              className="cta-primary mt-7 block rounded-full px-4 py-2.5 text-center text-sm font-semibold shadow-[0_10px_30px_rgba(208,30,72,0.35)] transition"
-            >
-              购买通行证
-            </Link>
-          </div>
+
+          {/* 三档点数套餐 */}
+          {CREDIT_PACKAGES.map((pkg) => {
+            const recommended = Boolean(pkg.recommended);
+            const discount = packageDiscountPercent(pkg);
+            const perResume = actionsPerPackage(pkg, "resume_generate");
+            const badge =
+              pkg.badge ?? (discount > 0 ? `省 ${discount}%` : undefined);
+
+            return (
+              <div
+                key={pkg.id}
+                className={
+                  recommended
+                    ? "relative flex flex-col overflow-hidden rounded-[24px] bg-[#0E1B2A] p-6 text-white shadow-[0_24px_60px_rgba(6,20,40,0.28)]"
+                    : "glass-panel flex flex-col rounded-[24px] p-6"
+                }
+              >
+                {recommended ? (
+                  <SoftGlow className="-right-8 -top-10 h-40 w-40 bg-hero-pink/25" />
+                ) : null}
+                <div className="relative flex items-center justify-between gap-2">
+                  <h3
+                    className={
+                      recommended
+                        ? "font-semibold"
+                        : "font-semibold text-[#0E1B2A]"
+                    }
+                  >
+                    {pkg.name}
+                  </h3>
+                  {badge ? (
+                    <span
+                      className={
+                        recommended
+                          ? "rounded-full bg-hero-pink-cta px-2.5 py-0.5 text-[12px] font-semibold text-white"
+                          : "rounded-full border border-[#1A6BD6]/20 bg-[#1A6BD6]/5 px-2.5 py-0.5 text-[12px] font-medium text-[#1A6BD6]"
+                      }
+                    >
+                      {badge}
+                    </span>
+                  ) : null}
+                </div>
+                <p
+                  className={`relative mt-2 text-4xl font-bold tracking-tight ${recommended ? "" : "text-[#0E1B2A]"}`}
+                >
+                  {formatYuan(pkg.priceFen)}
+                  <span
+                    className={`ml-1.5 text-sm font-normal ${recommended ? "text-white/55" : "text-[#0E1B2A]/50"}`}
+                  >
+                    / {formatPoints(pkg.points)}
+                  </span>
+                </p>
+                <p
+                  className={`relative mt-1 text-[13px] font-medium ${recommended ? "text-white/70" : "text-[#0E1B2A]/60"}`}
+                >
+                  折合 {formatYuan(pointsUnitPriceFen(pkg))}/点
+                  {discount > 0 ? ` · 比体验包省 ${discount}%` : " · 单点价格基准"}
+                </p>
+                <ul
+                  className={`relative mt-5 flex-1 space-y-2.5 text-base ${recommended ? "text-white/70" : "text-[#0E1B2A]/65"}`}
+                >
+                  <li>约 {perResume} 份整份简历生成</li>
+                  <li>{pkg.validityDays} 天有效</li>
+                  <li>一次性购买，不自动续费</li>
+                  <li>PDF 导出不扣点</li>
+                </ul>
+                <Link
+                  href="/editor"
+                  className={
+                    recommended
+                      ? "cta-primary relative mt-7 block rounded-full px-4 py-2.5 text-center text-sm font-semibold shadow-[0_10px_30px_rgba(208,30,72,0.35)] transition"
+                      : "cta-secondary relative mt-7 block rounded-full px-4 py-2.5 text-center text-sm font-semibold transition"
+                  }
+                >
+                  购买{pkg.name}
+                </Link>
+              </div>
+            );
+          })}
         </div>
-        <p className="mx-auto mt-6 max-w-3xl text-center text-[13px] leading-relaxed text-[#0E1B2A]/65">
-          通行证为单次购买：不自动续费、不自动扣款；到期降为免费额度，已写内容保留。
+        <p className="mx-auto mt-6 max-w-4xl text-center text-[13px] leading-relaxed text-[#0E1B2A]/65">
+          点数消耗：
+          {CREDIT_COST_ROWS.filter((row) => row.cost > 0)
+            .map((row) => `${row.label} ${row.cost} 点`)
+            .join(" · ")}
+          ；PDF 导出免费。所有套餐均为一次性购买，不自动续费、不自动扣款；
+          当前为产品演示环境，付款为沙箱模拟，不产生真实扣款。
         </p>
       </div>
     </section>

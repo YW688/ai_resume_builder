@@ -21,6 +21,7 @@ import type {
   AccentId,
   Application,
   ApplicationStage,
+  CreditsState,
   Job,
   Notification,
   NotificationKind,
@@ -32,6 +33,7 @@ import type {
   User,
   WorkspaceState,
 } from "@/lib/mock/types";
+import { getCreditsState } from "@/lib/credits/server";
 import { seedDemoWorkspace } from "./seed";
 
 const EPOCH = new Date(0).toISOString();
@@ -128,6 +130,18 @@ export async function loadWorkspace(userId: string): Promise<WorkspaceState> {
           user.planExpiresAt ?? new Date(initialWorkspace.plan.expiresAt),
         planPriceFen: user.planPriceFen ?? initialWorkspace.plan.priceFen,
         autoRenew: initialWorkspace.plan.autoRenew,
+        // 演示账号给一段点数余额，方便直接体验“生成整份简历（2 点）”等流程。
+        creditsBalance:
+          user.creditsBalance > 0
+            ? user.creditsBalance
+            : initialWorkspace.credits.balance,
+        creditsExpireAt:
+          user.creditsExpireAt ??
+          (initialWorkspace.credits.expiresAt
+            ? new Date(initialWorkspace.credits.expiresAt)
+            : null),
+        dailyCreditsUsed: user.dailyCreditsUsed,
+        dailyCreditsDate: user.dailyCreditsDate,
       })
       .where(eq(users.id, userId));
 
@@ -259,8 +273,13 @@ export async function loadWorkspace(userId: string): Promise<WorkspaceState> {
       amountFen: row.amountFen,
       label: row.label,
       status: "paid" as const,
+      credits: row.credits,
+      packageId: row.packageId ?? undefined,
     })),
   };
+
+  // 点数状态（顺带完成跨天免费额度重置、过期余额清零）。
+  const credits: CreditsState = await getCreditsState(userId);
 
   const preference = preferenceRows[0];
   const preferenceState: Preferences = {
@@ -285,6 +304,7 @@ export async function loadWorkspace(userId: string): Promise<WorkspaceState> {
     user: userState,
     preferences: preferenceState,
     plan,
+    credits,
     resumes: resumeList,
     jobs: jobList,
     applications: applicationList,

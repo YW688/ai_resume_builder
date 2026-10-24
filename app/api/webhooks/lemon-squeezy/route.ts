@@ -1,3 +1,11 @@
+/**
+ * @deprecated 2026-10 计费重构后已停用。
+ *
+ * 旧的 Lemon Squeezy 订阅回调（境外 MoR 支付）不再被前端调用，也不会给用户
+ * 开通任何权益。新支付回调统一走 `POST /api/webhooks/payment`
+ * （见 `lib/pay/index.ts` 与 `docs/credits/README.md`）。
+ * 保留本文件只为不删除历史路由/表结构，后续可安全移除。
+ */
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users, subscriptions } from "@/drizzle/schema";

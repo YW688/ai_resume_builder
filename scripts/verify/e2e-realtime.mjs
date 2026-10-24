@@ -38,8 +38,10 @@ try {
   const userId = session?.session?.userId ?? session?.user?.id;
   console.log("[1] signed up, userId =", userId);
 
-  // 打开通知面板，确认实时订阅已完成（页面会调用 /api/realtime/workspace）
-  await page.getByRole("button", { name: /通知/ }).click();
+  // 等待工作台渲染完成（首登录种子写入较慢），再打开通知面板
+  const bell = page.getByRole("button", { name: /通知/ }).first();
+  await bell.waitFor({ state: "visible", timeout: 120_000 });
+  await bell.click();
   const seededCount = await page.locator(".notif-list li, .notif-item").count().catch(() => 0);
   console.log("[2] notification panel opened, seeded items =", seededCount);
 

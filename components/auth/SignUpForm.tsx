@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { signUpWithEmail, type AuthFormState } from "@/app/sign-up/actions";
 import { AuthError, SubmitButton, inputClass } from "./form-ui";
+import { PasswordInput } from "./PasswordInput";
 
 export function SignUpForm({ redirectUrl }: { redirectUrl: string }) {
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(
@@ -19,7 +20,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string }) {
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="sign-up-name"
-          className="text-[12.5px] font-medium text-[#3c4a5e]"
+          className="text-[12.5px] font-semibold text-[#26364b]"
         >
           昵称 <span className="text-[#8e9aa4]">（可选）</span>
         </label>
@@ -38,7 +39,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string }) {
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="sign-up-email"
-          className="text-[12.5px] font-medium text-[#3c4a5e]"
+          className="text-[12.5px] font-semibold text-[#26364b]"
         >
           邮箱
         </label>
@@ -54,28 +55,16 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string }) {
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="sign-up-password"
-          className="text-[12.5px] font-medium text-[#3c4a5e]"
-        >
-          密码
-        </label>
-        <input
-          id="sign-up-password"
-          name="password"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
-          placeholder="至少 8 位字符"
-          className={inputClass}
-          disabled={pending}
-        />
-        <p className="text-[11.5px] text-[#8e9aa4]">
-          建议使用字母、数字与符号的组合，注册后即可直接登录。
-        </p>
-      </div>
+      <PasswordInput
+        id="sign-up-password"
+        name="password"
+        label="密码"
+        autoComplete="new-password"
+        placeholder="至少 8 位字符"
+        minLength={8}
+        hint="建议使用字母、数字与符号的组合，注册后即可直接登录。"
+        disabled={pending}
+      />
 
       <AuthError message={state?.error} />
 

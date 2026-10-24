@@ -4,15 +4,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/app/icons";
-import { ConfirmDialog, IconBtn, Menu } from "@/components/app/ui";
+import { ConfirmDialog, IconBtn, Menu, Progress } from "@/components/app/ui";
 import { NewResumeDialog } from "@/components/app/NewResumeDialog";
+import { CreditIcon } from "@/components/credits/CreditIcon";
 import { useWorkspace } from "@/lib/mock/store";
 import { authClient } from "@/lib/auth/client";
-import {
-  daysLeft,
-  formatRelative,
-  unreadNotifications,
-} from "@/lib/mock/compute";
+import { formatRelative, unreadNotifications } from "@/lib/mock/compute";
+import "@/components/credits/credits.css";
 
 const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/dashboard", label: "工作台", icon: "home" },
@@ -113,6 +111,61 @@ function NavLinks({
   );
 }
 
+/** 侧栏 / 移动导航共用的点数卡：余额 + 今日免费剩余 + 购买入口。 */
+function CreditMiniCard({ onOpen }: { onOpen: () => void }) {
+  const { state } = useWorkspace();
+  const credits = state.credits;
+  const dailyPct =
+    credits.dailyFree > 0 ? (credits.dailyUsed / credits.dailyFree) * 100 : 0;
+  const lowBalance = credits.plan === "member" && credits.balance === 0;
+  const tone =
+    credits.balance > 0
+      ? "default"
+      : credits.plan === "free"
+        ? "free"
+        : "low";
+
+  return (
+    <div className="credit-mini">
+      <div className="credit-mini-head">
+        <span className="credit-mini-label">
+          <CreditIcon size={16} tone={tone} decorative />
+          点数余额
+        </span>
+        <span className="credit-mini-tier">
+          {lowBalance
+            ? "余额不足"
+            : credits.plan === "member"
+              ? "点数会员"
+              : "免费额度"}
+        </span>
+      </div>
+
+      <div className="credit-mini-balance">
+        <strong className="num">{credits.balance}</strong>
+        <span>点</span>
+      </div>
+
+      <div className="credit-mini-daily">
+        <div className="credit-mini-daily-head">
+          <span>今日免费</span>
+          <span>
+            {credits.dailyRemaining} / {credits.dailyFree} 点
+          </span>
+        </div>
+        <Progress value={dailyPct} tone="warning" />
+      </div>
+
+      <div className="credit-mini-foot">
+        <button type="button" className="plan-link" onClick={onOpen}>
+          购买点数 <Icon name="chevronRight" size={12} />
+        </button>
+        <span className="t-11 t-faint">PDF 导出免费</span>
+      </div>
+    </div>
+  );
+}
+
 function SidebarFoot({
   onOpenSettings,
 }: {
@@ -121,31 +174,10 @@ function SidebarFoot({
   const router = useRouter();
   const { state, resetDemo, exportData, toast } = useWorkspace();
   const [resetOpen, setResetOpen] = useState(false);
-  const left = daysLeft(state.plan.expiresAt);
-  const remainingRatio = Math.max(0, Math.min(100, Math.round((left / 30) * 100)));
 
   return (
     <div className="app-sidebar-foot">
-      <div className="plan-card">
-        <div className="plan-card-top">
-          <span className="plan-name">{state.plan.name}</span>
-          <span className="plan-days">剩 {left} 天</span>
-        </div>
-        <div className="progress plan-meter">
-          <div className="progress-track">
-            <div
-              className="progress-fill"
-              style={{ width: `${remainingRatio}%` }}
-            />
-          </div>
-        </div>
-        <div className="t-11 t-muted" style={{ marginBottom: 8 }}>
-          本月 AI 改写 {state.plan.usage.aiRewrites} 次 · 导出 {state.plan.usage.exports} 次
-        </div>
-        <button type="button" className="plan-link" onClick={onOpenSettings}>
-          续购通行证 <Icon name="chevronRight" size={12} />
-        </button>
-      </div>
+      <CreditMiniCard onOpen={onOpenSettings} />
 
       <Menu
         align="left"
@@ -541,7 +573,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   onSelect: () => router.push("/dashboard/settings"),
                 },
                 {
-                  label: "套餐与用量",
+                  label: "点数与订单",
                   icon: "chart",
                   onSelect: () => router.push("/dashboard/settings"),
                 },
@@ -598,28 +630,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <NavLinks pathname={pathname} onNavigate={() => setMobileOpen(false)} />
             <div style={{ marginTop: "auto", paddingTop: 16 }}>
-              <div className="plan-card" style={{ marginBottom: 12 }}>
-                <div className="plan-card-top">
-                  <span className="plan-name">{state.plan.name}</span>
-                  <span className="plan-days">
-                    剩 {daysLeft(state.plan.expiresAt)} 天
-                  </span>
-                </div>
-                <div className="t-11 t-muted" style={{ marginTop: 6 }}>
-                  本月 AI 改写 {state.plan.usage.aiRewrites} 次 · 导出{" "}
-                  {state.plan.usage.exports} 次
-                </div>
-                <button
-                  type="button"
-                  className="plan-link"
-                  style={{ marginTop: 8 }}
-                  onClick={() => {
+              <div style={{ marginBottom: 12 }}>
+                <CreditMiniCard
+                  onOpen={() => {
                     setMobileOpen(false);
                     router.push("/dashboard/settings");
                   }}
-                >
-                  续购通行证 <Icon name="chevronRight" size={12} />
-                </button>
+                />
               </div>
               <div className="user-row" style={{ cursor: "default" }}>
                 <span className="avatar">{state.user.name.slice(0, 1)}</span>

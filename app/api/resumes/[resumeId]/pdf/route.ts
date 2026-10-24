@@ -3,7 +3,6 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { resumes, experiences, educations } from "@/drizzle/schema";
 import { getUserId } from "@/lib/dal";
-import { consumeExport } from "@/lib/quota";
 import { renderResumePdf } from "@/lib/pdf";
 
 function photoUrl(photoKey: string | null): string | null {
@@ -30,11 +29,7 @@ export async function GET(
     return NextResponse.json({ message: "简历不存在" }, { status: 404 });
   }
 
-  const quota = await consumeExport(userId);
-  if (!quota.ok) {
-    return NextResponse.json({ message: quota.message }, { status: 402 });
-  }
-
+  // PDF 导出免费、不限次数（新计费模型只对 AI 能力收取点数）。
   const exps = await db.query.experiences.findMany({
     where: eq(experiences.resumeId, resumeId),
     orderBy: [asc(experiences.sortOrder)],

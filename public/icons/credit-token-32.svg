@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" role="img" aria-labelledby="creditToken32Title creditToken32Desc">
+  <title id="creditToken32Title">AI 点数</title>
+  <desc id="creditToken32Desc">32 像素导出的点数图标：圆角票券、右侧撕口与星心圆点。</desc>
+  <mask id="creditToken32Notch" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+    <rect width="24" height="24" fill="#fff"/>
+    <circle cx="21.8" cy="12" r="2.4" fill="#000"/>
+  </mask>
+  <mask id="creditToken32Hole" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+    <rect width="24" height="24" fill="#fff"/>
+    <circle cx="12" cy="12.05" r="1.4" fill="#000"/>
+  </mask>
+  <g mask="url(#creditToken32Notch)">
+    <rect x="2.7" y="3.2" width="18.6" height="17.6" rx="6.1" fill="#E9F1FC" stroke="#1A6BD6" stroke-width="1.7"/>
+  </g>
+  <path d="M12 5.9c.85 3.8 2.35 5.3 6.15 6.15-3.8.85-5.3 2.35-6.15 6.15-.85-3.8-2.35-5.3-6.15-6.15 3.8-.85 5.3-2.35 6.15-6.15Z" fill="#1A6BD6" mask="url(#creditToken32Hole)"/>
+</svg>

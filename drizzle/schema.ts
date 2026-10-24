@@ -30,8 +30,18 @@ export const users = pgTable("users", {
   planExpiresAt: timestamp("plan_expires_at", { withTimezone: true }),
   planPriceFen: integer("plan_price_fen"),
   autoRenew: boolean("auto_renew").notNull().default(false),
+  // 旧版按次计数（保留做历史统计；新计费以 creditsBalance 为准）
   aiUsed: integer("ai_used").notNull().default(0),
   exportUsed: integer("export_used").notNull().default(0),
+  // ---- AI 点数（2026-10 重构）----
+  // 购买的可用点数；每日免费额度单独用 dailyCreditsUsed 记录，不混入余额。
+  creditsBalance: integer("credits_balance").notNull().default(0),
+  // 购买点数的统一到期时间；null = 没有付费余额。
+  creditsExpireAt: timestamp("credits_expire_at", { withTimezone: true }),
+  // 当天已使用的免费点数（Asia/Shanghai 自然日）。
+  dailyCreditsUsed: integer("daily_credits_used").notNull().default(0),
+  // 免费额度所属日期（YYYY-MM-DD，Asia/Shanghai）；换日时惰性重置。
+  dailyCreditsDate: text("daily_credits_date"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -241,14 +251,56 @@ export const orders = pgTable(
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
     amountFen: integer("amount_fen").notNull().default(0),
     label: text("label").notNull().default(""),
-    // "paid" | ...
+    // "pending" | "paid" | "refunded" | "cancelled"
     status: text("status").notNull().default("paid"),
+    // 点数套餐 id（见 lib/credits/catalog.ts）
+    packageId: text("package_id"),
+    // 本单到账点数
+    credits: integer("credits").notNull().default(0),
+    // 支付渠道：manual（本机沙箱）/ mbd（面包多Pay）/ afdian（爱发电）/ alipay / wechat
+    provider: text("provider"),
+    // 渠道侧订单号，用于对账与幂等
+    providerOrderId: text("provider_order_id"),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (table) => [index("orders_user_id_at_idx").on(table.userId, table.at)],
+);
+
+// ---------------------------------------------------------------------------
+// credit_ledger —— 点数流水（获得 / 消耗 / 退款 / 过期），对账与客服依据
+// ---------------------------------------------------------------------------
+export const creditLedger = pgTable(
+  "credit_ledger",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // 正数获得、负数消耗
+    delta: integer("delta").notNull(),
+    // 变动后余额（不含每日免费额度）
+    balanceAfter: integer("balance_after").notNull().default(0),
+    // "purchase" | "grant" | "spend" | "refund" | "expire"
+    kind: text("kind").notNull(),
+    // 消耗/退款对应的 AI 能力（见 CreditFeature）
+    feature: text("feature"),
+    // 关联订单 / AI 记录 / 管理操作
+    ref: text("ref"),
+    note: text("note").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("credit_ledger_user_id_created_at_idx").on(
+      table.userId,
+      table.createdAt,
+    ),
+  ],
 );
 
 export const subscriptions = pgTable("subscriptions", {
@@ -295,3 +347,4 @@ export type Application = typeof applications.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type Preferences = typeof preferences.$inferSelect;
 export type Order = typeof orders.$inferSelect;
+export type CreditLedgerRow = typeof creditLedger.$inferSelect;

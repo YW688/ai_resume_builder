@@ -12,7 +12,9 @@ import {
 import { blankResumeContent, KEYWORD_DICTIONARY } from "@/lib/mock/data";
 import type {
   Application,
+  CreditsState,
   Job,
+  Order,
   Preferences,
   Plan,
   Resume,
@@ -32,6 +34,7 @@ import {
   loadWorkspaceAction,
   markAllNotificationsReadAction,
   markNotificationReadAction,
+  purchaseCreditsAction,
   recordUsageAction,
   renewPlanAction,
   resetDemoAction,
@@ -80,6 +83,14 @@ type WorkspaceContextValue = {
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   renewPlan: () => void;
+  /** 购买点数套餐；成功后把余额与订单同步到本地状态。 */
+  purchaseCredits: (packageId: string) => Promise<{
+    ok: boolean;
+    message?: string;
+    simulated?: boolean;
+  }>;
+  /** AI 调用返回最新点数状态后，用它同步本地（免整页刷新）。 */
+  applyCredits: (credits: CreditsState) => void;
   recordAiRewrite: () => void;
   recordExport: () => void;
   resetDemo: () => void;
@@ -189,6 +200,16 @@ export function WorkspaceProvider({
       });
     }
   }, [commitState, toast]);
+
+  // 数据一致性兜底：Neon Realtime 的公网入口不可用（平台 403）或浏览器无法建立
+  // WebSocket 时，定时从服务端重新拉取 workspace，保证其他端/后台写入能反映到 UI。
+  // Realtime 正常时它只是多余的一次刷新，不影响实时推送。
+  useEffect(() => {
+    const timer = setInterval(() => {
+      void refreshFromServer();
+    }, 25_000);
+    return () => clearInterval(timer);
+  }, [refreshFromServer]);
 
   const reportActionError = useCallback(
     (error: unknown, fallback: string) => {
@@ -544,6 +565,66 @@ export function WorkspaceProvider({
     persist(recordUsageAction("export"), "导出用量记录失败。");
   }, [commitState, persist]);
 
+  const applyCredits = useCallback(
+    (credits: CreditsState) => {
+      commitState({ ...stateRef.current, credits });
+    },
+    [commitState],
+  );
+
+  const purchaseCredits = useCallback<WorkspaceContextValue["purchaseCredits"]>(
+    async (packageId) => {
+      try {
+        const result = await purchaseCreditsAction(packageId);
+        if (!result.ok) {
+          const failure = result as { error?: string; message?: string };
+          const message =
+            failure.message || failure.error || "购买失败，请稍后重试";
+          toast({ title: "购买未完成", description: message, tone: "negative" });
+          return { ok: false, message };
+        }
+        const { credits, order, simulated } = result.data;
+        const prev = stateRef.current;
+        const delivered: Order = {
+          id: order.id,
+          at: order.at,
+          amountFen: order.amountFen,
+          label: order.label,
+          status: "paid",
+          credits: order.credits,
+          packageId: order.packageId,
+        };
+        commitState({
+          ...prev,
+          credits,
+          plan: {
+            ...prev.plan,
+            name: "点数会员",
+            startedAt: order.at,
+            expiresAt: credits.expiresAt ?? prev.plan.expiresAt,
+            priceFen: order.amountFen,
+            autoRenew: false,
+            orders: [delivered, ...prev.plan.orders],
+          },
+        });
+        toast({
+          title: simulated === false ? "支付成功，点数已到账" : "点数已到账（本机沙箱）",
+          description: `本次到账 ${order.credits} 点，当前余额 ${credits.balance} 点。`,
+          tone: "positive",
+        });
+        return { ok: true, simulated };
+      } catch (error) {
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : "购买失败，请稍后重试";
+        toast({ title: "购买失败", description: message, tone: "negative" });
+        return { ok: false, message };
+      }
+    },
+    [commitState, toast],
+  );
+
   const resetDemo = useCallback(() => {
     void (async () => {
       try {
@@ -607,6 +688,8 @@ export function WorkspaceProvider({
       markNotificationRead,
       markAllNotificationsRead,
       renewPlan,
+      purchaseCredits,
+      applyCredits,
       recordAiRewrite,
       recordExport,
       resetDemo,
@@ -635,6 +718,8 @@ export function WorkspaceProvider({
       markNotificationRead,
       markAllNotificationsRead,
       renewPlan,
+      purchaseCredits,
+      applyCredits,
       recordAiRewrite,
       recordExport,
       resetDemo,

@@ -1,0 +1,57 @@
+{
+  "id": "backend",
+  "name": "后端开发",
+  "aliases": [
+    "后端",
+    "后端开发",
+    "java",
+    "go",
+    "python后端",
+    "服务端",
+    "架构师",
+    "golang"
+  ],
+  "coreSkills": [
+    "Java / Go / Python",
+    "Spring Boot",
+    "MySQL",
+    "Redis",
+    "消息队列",
+    "微服务",
+    "API 设计",
+    "高并发",
+    "数据库优化",
+    "容器化",
+    "分布式",
+    "监控告警"
+  ],
+  "tools": ["Git", "Docker", "Kubernetes", "Kafka / RabbitMQ", "Prometheus / Grafana", "Linux", "Jenkins"],
+  "jdKeywords": [
+    "微服务",
+    "高并发",
+    "MySQL",
+    "Redis",
+    "Kafka",
+    "分布式",
+    "性能优化",
+    "API 设计",
+    "Docker",
+    "K8s",
+    "缓存",
+    "数据库"
+  ],
+  "actionVerbs": ["设计", "搭建", "重构", "优化", "治理", "迁移", "保障", "沉淀"],
+  "quantTemplates": [
+    "支撑日均 {N} 万级请求 / {N} 万条数据（N 必须来自真实监控数据）",
+    "接口平均响应时间从 {N}ms 降到 {N}ms（仅当有真实数据）",
+    "维护 {N} 个服务 / {N} 张核心表，保障稳定运行（N 必须来自真实信息）"
+  ],
+  "canonical": [
+    { "from": "java", "to": "Java（Spring Boot、JVM 调优）" },
+    { "from": "go", "to": "Go（Gin、并发编程）" },
+    { "from": "mysql", "to": "MySQL（索引设计、慢查询优化）" },
+    { "from": "redis", "to": "Redis（缓存设计、分布式锁）" },
+    { "from": "kafka", "to": "Kafka（消息队列、削峰解耦）" },
+    { "from": "微服务", "to": "微服务（服务拆分、RPC、网关）" }
+  ]
+}

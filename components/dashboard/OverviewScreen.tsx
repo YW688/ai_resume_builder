@@ -9,7 +9,6 @@ import {
   applicationFunnel,
   computeCompletion,
   computeMatch,
-  daysLeft,
   formatRelative,
   formatSchedule,
   mostRecentResume,
@@ -20,6 +19,7 @@ import {
 import { A4Thumb } from "@/components/app/A4Page";
 import { NewResumeButton } from "@/components/app/NewResumeDialog";
 import { Btn, Pill, Progress } from "@/components/app/ui";
+import { CreditIcon } from "@/components/credits/CreditIcon";
 import { Icon, type IconName } from "@/components/app/icons";
 import type { ResumeStatus } from "@/lib/mock/types";
 
@@ -76,7 +76,13 @@ export function OverviewScreen() {
     (a, b) => computeCompletion(a) - computeCompletion(b),
   )[0];
 
-  const planDays = daysLeft(state.plan.expiresAt);
+  const credits = state.credits;
+  const creditsLow = credits.plan === "member" && credits.balance === 0;
+  const creditsTone = creditsLow
+    ? "low"
+    : credits.balance > 0
+      ? "default"
+      : "free";
 
   const finding = match && targetJob ? (
     <>
@@ -521,16 +527,24 @@ export function OverviewScreen() {
 
               <div className="list-row">
                 <span className="toast-icon" style={{ marginTop: 2 }}>
-                  <Icon name="clock" size={15} />
+                  <CreditIcon size={15} tone={creditsTone} decorative />
                 </span>
                 <div className="list-row-main">
-                  <div className="list-title">通行证还有 {planDays} 天到期</div>
-                  <div className="list-sub">到期后降为免费额度，已写内容保留</div>
+                  <div className="list-title">
+                    {creditsLow
+                      ? "点数余额不足，生成一份简历需要 2 点"
+                      : `点数余额 ${credits.balance} 点 · 今日免费还剩 ${credits.dailyRemaining} 点`}
+                  </div>
+                  <div className="list-sub">
+                    {creditsLow
+                      ? "购买点数后可继续生成与润色；PDF 导出仍然免费。"
+                      : `每天 00:00 刷新 ${credits.dailyFree} 点免费额度，先扣免费额度再扣购买点数。`}
+                  </div>
                 </div>
                 <div className="list-actions">
                   <QuickAction
                     icon="arrowRight"
-                    label="查看"
+                    label={creditsLow ? "购买点数" : "查看点数"}
                     onClick={() => router.push("/dashboard/settings")}
                   />
                 </div>

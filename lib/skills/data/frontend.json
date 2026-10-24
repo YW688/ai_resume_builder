@@ -1,0 +1,59 @@
+{
+  "id": "frontend",
+  "name": "前端开发",
+  "aliases": [
+    "前端",
+    "前端开发",
+    "web前端",
+    "前端工程师",
+    "h5",
+    "小程序",
+    "react",
+    "vue",
+    "全栈"
+  ],
+  "coreSkills": [
+    "HTML / CSS / JavaScript",
+    "TypeScript",
+    "React",
+    "Vue",
+    "响应式布局",
+    "性能优化",
+    "前端工程化",
+    "组件库建设",
+    "状态管理",
+    "跨端适配",
+    "前端测试",
+    "无障碍"
+  ],
+  "tools": ["VS Code", "Git", "Webpack / Vite", "npm / pnpm", "Chrome DevTools", "Figma", "Jenkins"],
+  "jdKeywords": [
+    "TypeScript",
+    "React",
+    "Vue",
+    "性能优化",
+    "工程化",
+    "组件化",
+    "响应式",
+    "Webpack",
+    "小程序",
+    "Node.js",
+    "单元测试",
+    "跨端"
+  ],
+  "actionVerbs": ["搭建", "重构", "优化", "封装", "迁移", "联调", "支撑", "沉淀"],
+  "quantTemplates": [
+    "首屏加载时间从 {N}s 降到 {N}s（仅当有真实监控数据）",
+    "沉淀 {N} 个通用组件 / 工具函数，覆盖 {N} 个页面（仅当有真实产出）",
+    "支撑 {N} 个业务页面 / 模块按期上线（N 必须来自真实信息）"
+  ],
+  "canonical": [
+    { "from": "js", "to": "JavaScript（ES6+、异步编程）" },
+    { "from": "javascript", "to": "JavaScript（ES6+、异步编程）" },
+    { "from": "ts", "to": "TypeScript（类型设计、泛型）" },
+    { "from": "typescript", "to": "TypeScript（类型设计、泛型）" },
+    { "from": "react", "to": "React（Hooks、状态管理、性能优化）" },
+    { "from": "vue", "to": "Vue（组件化、路由、状态管理）" },
+    { "from": "性能优化", "to": "性能优化（首屏、包体积、渲染性能）" }
+  ]
+}

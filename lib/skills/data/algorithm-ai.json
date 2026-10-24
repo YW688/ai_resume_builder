@@ -1,0 +1,60 @@
+{
+  "id": "algorithm-ai",
+  "name": "算法 / AI",
+  "aliases": [
+    "算法",
+    "算法工程师",
+    "机器学习",
+    "深度学习",
+    "ai",
+    "大模型",
+    "nlp",
+    "cv",
+    "推荐算法",
+    "llm",
+    "ai工程师"
+  ],
+  "coreSkills": [
+    "机器学习",
+    "深度学习",
+    "Python",
+    "PyTorch / TensorFlow",
+    "NLP / CV / 推荐",
+    "特征工程",
+    "模型评估",
+    "数据标注",
+    "大模型微调",
+    "RAG",
+    "A/B 实验",
+    "模型部署"
+  ],
+  "tools": ["PyTorch", "TensorFlow", "HuggingFace", "SQL", "Docker", "Git", "MLflow"],
+  "jdKeywords": [
+    "机器学习",
+    "深度学习",
+    "大模型",
+    "NLP",
+    "推荐系统",
+    "特征工程",
+    "模型优化",
+    "PyTorch",
+    "Transformer",
+    "微调",
+    "RAG",
+    "模型部署"
+  ],
+  "actionVerbs": ["训练", "调优", "搭建", "评估", "落地", "蒸馏", "部署", "验证"],
+  "quantTemplates": [
+    "在 {N} 万 / {N} 亿级样本上训练模型（N 必须来自真实数据）",
+    "模型准确率 / 召回率提升 {N} 个百分点（仅当有真实评测数据）",
+    "推理耗时从 {N}ms 降到 {N}ms，支撑 {N} QPS（仅当有真实数据）"
+  ],
+  "canonical": [
+    { "from": "python", "to": "Python（数据处理、模型训练）" },
+    { "from": "pytorch", "to": "PyTorch（模型训练与调优）" },
+    { "from": "机器学习", "to": "机器学习（特征工程、模型评估）" },
+    { "from": "大模型", "to": "大模型应用（微调、RAG、Prompt 工程）" },
+    { "from": "nlp", "to": "NLP（文本分类、信息抽取、语义理解）" },
+    { "from": "推荐", "to": "推荐系统（召回、排序、特征工程）" }
+  ]
+}

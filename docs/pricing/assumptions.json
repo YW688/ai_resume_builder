@@ -1,0 +1,203 @@
+{
+  "meta": {
+    "asOf": "2026-10-24",
+    "currency": "CNY",
+    "usdCny": 7.15,
+    "note": "本脚本为纯本地测算；外部价格以官网/签约页为准。"
+  },
+  "deepseek": {
+    "model": "deepseek-flash",
+    "peakShare": 0.3,
+    "cacheHitShare": 0.4,
+    "retryFactor": 1.15,
+    "priceFlash": {
+      "cacheHit": {
+        "idle": 0.02,
+        "peak": 0.04
+      },
+      "cacheMiss": {
+        "idle": 1,
+        "peak": 2
+      },
+      "output": {
+        "idle": 4,
+        "peak": 8
+      }
+    },
+    "pricePro": {
+      "cacheHit": {
+        "idle": 0.15,
+        "peak": 0.3
+      },
+      "cacheMiss": {
+        "idle": 4.5,
+        "peak": 9
+      },
+      "output": {
+        "idle": 13.5,
+        "peak": 27
+      }
+    }
+  },
+  "tokenUsage": {
+    "fullResume": {
+      "input": 3000,
+      "output": 3000,
+      "points": 2
+    },
+    "section": {
+      "input": 1500,
+      "output": 500,
+      "points": 1
+    }
+  },
+  "usageMixPer100Points": {
+    "fullResumeCalls": 20,
+    "sectionCalls": 60
+  },
+  "packages": [
+    {
+      "id": "trial",
+      "name": "体验包",
+      "price": 9.9,
+      "points": 12,
+      "validityDays": 90,
+      "mix": 0.55,
+      "tag": ""
+    },
+    {
+      "id": "job",
+      "name": "求职包",
+      "price": 29.9,
+      "points": 45,
+      "validityDays": 180,
+      "mix": 0.35,
+      "tag": "最划算"
+    },
+    {
+      "id": "sprint",
+      "name": "冲刺包",
+      "price": 69,
+      "points": 120,
+      "validityDays": 365,
+      "mix": 0.1,
+      "tag": ""
+    }
+  ],
+  "freeQuota": {
+    "pointsPerDay": 5,
+    "activeAiUserShare": 0.35,
+    "callsPerActiveUserPerMonth": 5,
+    "pointsPerCall": 1.6,
+    "freeCoverageShare": 0.75
+  },
+  "payment": {
+    "channels": [
+      {
+        "id": "mbd",
+        "name": "面包多Pay",
+        "pct": 0.02,
+        "fixed": 0.1,
+        "note": "2% + ¥0.1/笔"
+      },
+      {
+        "id": "afdian",
+        "name": "爱发电",
+        "pct": 0.06,
+        "fixed": 0,
+        "note": "6% 全包"
+      },
+      {
+        "id": "direct",
+        "name": "微信/支付宝直连",
+        "pct": 0.006,
+        "fixed": 0,
+        "note": "0.6%（以签约页为准）"
+      }
+    ],
+    "defaultChannel": "mbd"
+  },
+  "refundRate": 0.03,
+  "repeat": {
+    "ordersPerPayerPerMonth": 1.15,
+    "lifetimeOrdersPerPayer": 1.6,
+    "newPayerShare": 0.65
+  },
+  "acquisition": {
+    "cacPerNewPayer": 10
+  },
+  "tax": {
+    "vatRate": 0,
+    "incomeTaxRate": 0.05
+  },
+  "fixedCost": {
+    "domain": 7,
+    "vercelPro": 150,
+    "storageBase": 10,
+    "storagePerMau": 0.002,
+    "neonTiers": [
+      {
+        "maxMau": 500,
+        "cost": 0
+      },
+      {
+        "maxMau": 5000,
+        "cost": 110
+      },
+      {
+        "maxMau": null,
+        "cost": 400
+      }
+    ],
+    "sms": {
+      "costPerNewUser": 0.03,
+      "newUserShare": 0.2
+    },
+    "accounting": 200,
+    "supportTiers": [
+      {
+        "maxMau": 1000,
+        "cost": 0
+      },
+      {
+        "maxMau": 5000,
+        "cost": 300
+      },
+      {
+        "maxMau": null,
+        "cost": 1500
+      }
+    ],
+    "contentFixed": 100,
+    "contentPerMau": 0.05,
+    "misc": 60
+  },
+  "scale": {
+    "mau": [
+      100,
+      1000,
+      10000
+    ],
+    "conversion": [
+      0.015,
+      0.03,
+      0.05
+    ]
+  },
+  "sensitivityBase": {
+    "mau": 3000,
+    "conversion": 0.03
+  },
+  "abuseWorstCasePointsPerMau": 150,
+  "sources": {
+    "deepseekPricing": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+    "mbdPayFee": "https://doc.mbd.pub/untitled",
+    "afdianFee": "https://guide.afdian.com/faq/faq-for-creators",
+    "wechatPayFee": "https://kf.qq.com/touch/sappfaq/220420FbQjaQ220420Eruu2y.html",
+    "neonPricing": "https://neon.com/pricing",
+    "vatExemption": "https://www.gov.cn/zhengce/zhengceku/202308/content_6896287.htm",
+    "prepaidCardRule": "https://www.gov.cn/zhengce/2012-09/21/content_5712346.htm",
+    "icpRule": "http://xzfg.moj.gov.cn/front/law/detail?LawID=1756",
+    "pipl": "http://www.npc.gov.cn/npc/c2/c30834/202108/t20210820_313088.html"
+  }
+}

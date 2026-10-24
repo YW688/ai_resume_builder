@@ -1,6 +1,10 @@
 // 演示数据模型：产品原型的唯一类型来源。
 // 真实产品中这些类型会由 Drizzle schema 派生；当前阶段全部由 lib/mock/data.ts 硬编码。
 
+import type { CreditsState } from "@/lib/credits/catalog";
+
+export type { CreditsState };
+
 export type TemplateId = "classic" | "split" | "compact";
 export type AccentId = "blue" | "ink" | "green";
 export type ResumeStatus = "draft" | "ready" | "applied" | "archived";
@@ -86,6 +90,10 @@ export type Order = {
   amountFen: number;
   label: string;
   status: "paid";
+  /** 本单到账点数（新计费模型；旧订单可能为 undefined） */
+  credits?: number;
+  /** 套餐 id，例如 "jobhunt" */
+  packageId?: string;
 };
 
 export type Plan = {
@@ -120,6 +128,8 @@ export type WorkspaceState = {
   user: User;
   preferences: Preferences;
   plan: Plan;
+  /** AI 点数状态：余额、每日免费额度、重置时间（新计费模型）。 */
+  credits: CreditsState;
   resumes: Resume[];
   jobs: Job[];
   applications: Application[];

@@ -1,13 +1,17 @@
 "use client";
 
-/* 弹窗打开时需要把改写阶段重置为 idle，属于对受控弹窗状态的外部同步。 */
+/* 弹窗打开时需要重置生成阶段，属于对受控弹窗状态的外部同步。 */
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { highlightText } from "@/components/app/A4Page";
 import { Btn, Modal, Pill } from "@/components/app/ui";
+import { Icon } from "@/components/app/icons";
+import { CREDIT_FEATURES, type CreditsState } from "@/lib/credits/catalog";
 import { computeMatch } from "@/lib/mock/compute";
-import type { Job, Resume } from "@/lib/mock/types";
+import type { Job, Resume, ToastInput } from "@/lib/mock/types";
+import { polishProjectAction, polishSummaryAction } from "@/lib/ai/actions";
 import { JDPanel } from "./JDPanel";
 
 export type RewriteMode = "summary" | "experience";
@@ -22,142 +26,203 @@ export type RewriteTarget = {
   original: string;
 };
 
-const FALLBACK_KEYWORDS = ["数据分析", "跨部门协作", "项目管理"];
+type Phase = "idle" | "loading" | "ready" | "error";
 
-/** 优先用简历里还缺的 JD 关键词，其次用已命中的，凑够 3 个。 */
-function rewriteKeywords(resume: Resume, job: Job): string[] {
-  const match = computeMatch(resume, job);
-  const picked = Array.from(new Set([...match.missing, ...match.hit])).slice(0, 3);
-  for (const word of FALLBACK_KEYWORDS) {
-    if (picked.length >= 3) break;
-    if (!picked.includes(word)) picked.push(word);
-  }
-  return picked;
+function availablePoints(credits: CreditsState): number {
+  return credits.dailyRemaining + credits.balance;
+}
+
+function creditsSummary(credits: CreditsState): string {
+  return `当前可用 ${availablePoints(credits)} 点（免费 ${credits.dailyRemaining} + 余额 ${credits.balance}）`;
 }
 
 /**
- * 演示版 mock 改写：只做两段更量化、带 JD 关键词的中文表达，
- * 两个版本供「重新生成」切换；不调用任何真实 AI 接口。
+ * AI 润色弹窗：真实调用 Server Action（summary → polishSummaryAction，
+ * experience → polishProjectAction），每次生成 / 重新生成都会消耗 1 点。
+ *
+ * 交互约定：
+ * - 打开即显示本次消耗与当前余额；
+ * - 余额不足时禁用生成，并给出购买引导（/dashboard/settings）；
+ * - 生成成功后立即通过 onCreditsChange 同步最新点数；
+ * - 失败展示服务端返回的 message（尤其是「未配置 API」的明确提示）。
  */
-function buildVersions(target: RewriteTarget, job: Job, keywords: string[]): [string, string] {
-  const [k1, k2, k3] = keywords;
-  if (target.mode === "summary") {
-    return [
-      `5 年产品经验，聚焦${k1}与${k2}方向，主导过从 0 到 1 的增长项目。习惯用${k3}验证每一次迭代，能把复杂问题拆成可执行的需求与清晰指标。`,
-      `具备${k1}、${k2}与${k3}的完整实践，主导的改版让核心指标连续 3 个季度提升。擅长跨部门协作与项目管理，在信息不完整时也能快速做出可验证的判断。`,
-    ];
-  }
-  const company = job.company || "当前公司";
-  return [
-    `负责${company}方向的${k1}与${k2}落地，围绕核心用户路径重做 3 个关键功能，上线后核心转化率提升 12%。\n用${k3}复盘每一次迭代，把需求交付周期从 21 天压缩到 14 天。\n作为跨团队接口人协调设计、研发与运营，3 个版本全部按期交付。`,
-    `主导${k1}方向的产品设计，通过${k2}拆解用户场景，把复杂流程拆成 4 个可交付模块。\n以${k3}为依据持续复盘，推动核心指标连续 2 个季度增长，季度收入提升 15%。\n推动跨部门协作流程标准化，需求评审一次通过率从 62% 提升到 88%。`,
-  ];
-}
-
-type Phase = "idle" | "loading" | "ready";
-
 export function RewriteDialog({
   open,
   target,
   resume,
   job,
+  credits,
   onClose,
   onApply,
+  onCreditsChange,
+  toast,
 }: {
   open: boolean;
   target: RewriteTarget | null;
   resume: Resume;
   job?: Job;
+  credits: CreditsState;
   onClose: () => void;
   onApply: (text: string) => void;
+  onCreditsChange: (credits: CreditsState) => void;
+  toast: (input: ToastInput) => void;
 }) {
   const [phase, setPhase] = useState<Phase>("idle");
-  const [versionIndex, setVersionIndex] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [result, setResult] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [errorCode, setErrorCode] = useState("");
+  const [lastModel, setLastModel] = useState("");
+  const [lastCost, setLastCost] = useState(0);
 
-  const keywords = useMemo(
-    () => (job ? rewriteKeywords(resume, job) : FALLBACK_KEYWORDS),
-    [job, resume],
-  );
-  const versions = useMemo<[string, string] | null>(
-    () => (job && target ? buildVersions(target, job, keywords) : null),
-    [job, target, keywords],
-  );
-  const match = useMemo(() => (job ? computeMatch(resume, job) : null), [job, resume]);
+  const feature = target?.mode === "summary" ? "summary_polish" : "experience_polish";
+  const cost = CREDIT_FEATURES[feature].cost;
+  const available = availablePoints(credits);
+  const canAfford = available >= cost;
+  const jd = job?.jdText?.trim() ?? "";
+  const missingJob = !job || !jd;
+  const match = useMemo(() => (job && jd ? computeMatch(resume, job) : null), [job, jd, resume]);
 
-  function clearTimer() {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  }
-
+  // 切换目标 / 重新打开时重置阶段；点数余额变化不影响已生成结果。
   useEffect(() => {
     if (!open) return;
-    clearTimer();
     setPhase("idle");
-    setVersionIndex(0);
-    return clearTimer;
+    setResult("");
+    setErrorMessage("");
+    setErrorCode("");
+    setLastModel("");
+    setLastCost(0);
   }, [open, target?.mode, target?.experienceId]);
-
-  useEffect(() => clearTimer, []);
-
-  function generate(nextIndex?: number) {
-    clearTimer();
-    setPhase("loading");
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      if (typeof nextIndex === "number") setVersionIndex(nextIndex);
-      else setVersionIndex(0);
-      setPhase("ready");
-    }, 900);
-  }
-
-  function close() {
-    clearTimer();
-    onClose();
-  }
 
   if (!target) return null;
 
-  const missingJob = !job || !versions || !match;
+  async function generate() {
+    if (!target || !job || !jd || phase === "loading") return;
+    if (!canAfford) {
+      toast({
+        title: "点数不足",
+        description: `本次需要 ${cost} 点，当前可用 ${available} 点。可到账户设置购买点数包，或明天再试（每日赠送 ${credits.dailyFree} 点）。`,
+        tone: "negative",
+      });
+      return;
+    }
+
+    setPhase("loading");
+    setErrorMessage("");
+    setErrorCode("");
+
+    try {
+      if (target.mode === "summary") {
+        const response = await polishSummaryAction({ resumeId: resume.id, jd });
+        if (!response.ok) {
+          if (response.credits) onCreditsChange(response.credits);
+          setPhase("error");
+          setErrorCode(response.error);
+          setErrorMessage(response.message);
+          toast({ title: "AI 润色失败", description: response.message, tone: "negative" });
+          return;
+        }
+        onCreditsChange(response.data.credits);
+        setResult(response.data.text);
+        setLastModel(response.data.model);
+        setLastCost(response.data.cost);
+        setPhase("ready");
+        return;
+      }
+
+      const experience = resume.experiences.find(
+        (item) => item.id === target.experienceId,
+      );
+      const response = await polishProjectAction({
+        resumeId: resume.id,
+        experienceId: target.experienceId ?? "",
+        jd,
+        // 刚编辑、600ms 防抖还没保存时，用当前草稿兜底，避免服务端读不到最新内容。
+        experience: experience
+          ? {
+              company: experience.company,
+              title: experience.title,
+              startDate: experience.startDate,
+              endDate: experience.endDate,
+              description: experience.description,
+            }
+          : undefined,
+      });
+      if (!response.ok) {
+        if (response.credits) onCreditsChange(response.credits);
+        setPhase("error");
+        setErrorCode(response.error);
+        setErrorMessage(response.message);
+        toast({ title: "AI 润色失败", description: response.message, tone: "negative" });
+        return;
+      }
+      onCreditsChange(response.data.credits);
+      setResult(response.data.text);
+      setLastModel(response.data.model);
+      setLastCost(response.data.cost);
+      setPhase("ready");
+    } catch (error) {
+      console.error("[editor] AI 润色失败", error);
+      setPhase("error");
+      setErrorCode("ai_error");
+      setErrorMessage("请求没有完成，请检查网络后重试（若已扣点数，会自动退回）。");
+      toast({
+        title: "AI 润色失败",
+        description: "请求没有完成，请稍后重试。",
+        tone: "negative",
+      });
+    }
+  }
+
+  function applyResult() {
+    if (!result) return;
+    onApply(result);
+    onClose();
+  }
+
+  const insufficient = !canAfford;
 
   const footer = missingJob ? (
-    <Btn variant="secondary" onClick={close}>
+    <Btn variant="secondary" onClick={onClose}>
       关闭
     </Btn>
   ) : (
     <>
-      {phase === "ready" ? (
+      {phase === "ready" || phase === "error" ? (
         <Btn
           variant="ghost"
           icon="refresh"
-          onClick={() => generate((versionIndex + 1) % 2)}
+          disabled={insufficient}
+          title={
+            insufficient
+              ? "点数不足，无法重新生成"
+              : `重新生成会再次消耗 ${cost} 点`
+          }
+          onClick={() => void generate()}
         >
-          重新生成
+          重新生成（再扣 {cost} 点）
         </Btn>
       ) : null}
-      <Btn variant="secondary" onClick={close}>
+      <Btn variant="secondary" onClick={onClose}>
         取消
       </Btn>
-      {phase === "idle" ? (
-        <Btn variant="primary" icon="sparkles" onClick={() => generate()}>
-          生成改写
+      {phase === "ready" ? (
+        <Btn variant="primary" onClick={applyResult}>
+          应用替换
         </Btn>
       ) : (
         <Btn
           variant="primary"
-          onClick={() => {
-            if (!versions) return;
-            const text = versions[versionIndex];
-            clearTimer();
-            onApply(text);
-            onClose();
-          }}
+          icon="sparkles"
           loading={phase === "loading"}
-          disabled={phase === "loading"}
+          disabled={insufficient || phase === "loading"}
+          title={
+            insufficient
+              ? "点数不足，先去账户设置购买点数"
+              : `生成会消耗 ${cost} 点`
+          }
+          onClick={() => void generate()}
         >
-          应用替换
+          {phase === "error" ? `重试（${cost} 点）` : `生成润色（${cost} 点）`}
         </Btn>
       )}
     </>
@@ -166,8 +231,8 @@ export function RewriteDialog({
   return (
     <Modal
       open={open}
-      onClose={close}
-      title="对照 JD 改写"
+      onClose={onClose}
+      title="AI 润色 · 对照 JD"
       description={`${target.label} · 结果会替换当前段落，应用前可以随时取消。`}
       size="lg"
       footer={footer}
@@ -176,11 +241,38 @@ export function RewriteDialog({
         <div className="ed-rewrite-blocked">
           <Pill tone="warning">缺少目标岗位</Pill>
           <p className="ed-rewrite-blocked-text">
-            还没有选择目标岗位或 JD，无法对照关键词改写。请先在顶栏选择一个目标岗位，再回到这里重试。
+            还没有选择目标岗位或 JD，无法对照关键词润色。请先在顶栏选择一个目标岗位，再回到这里重试。
           </p>
         </div>
       ) : (
         <div className="ed-rewrite">
+          <div className="ed-ai-costline" role="note">
+            <span className="ed-ai-costline-main">
+              <Icon name="sparkles" size={14} />
+              本次消耗 <strong className="num">{cost}</strong> 点 · {creditsSummary(credits)}
+            </span>
+            <span className="ed-ai-costline-sub">
+              每日免费额度 {credits.dailyFree} 点，北京时间 0 点重置
+              {credits.expiresAt ? " · 购买点数在有效期内不过期" : ""}
+            </span>
+          </div>
+
+          {insufficient ? (
+            <div className="ed-ai-notice" role="alert">
+              <span className="ed-ai-notice-title">
+                <Icon name="warning" size={14} />
+                点数不足，暂时不能生成
+              </span>
+              <span className="ed-ai-notice-text">
+                本次需要 {cost} 点，当前可用 {available} 点。可以明天再试（每日赠送{" "}
+                {credits.dailyFree} 点），或购买点数包后立即继续。
+              </span>
+              <Link className="btn btn-primary btn-sm" href="/dashboard/settings">
+                去购买点数
+              </Link>
+            </div>
+          ) : null}
+
           <JDPanel job={job!} match={match!} jdMaxHeight={150} />
 
           <div className="ed-rewrite-grid">
@@ -196,10 +288,10 @@ export function RewriteDialog({
 
             <section className="ed-rewrite-block" aria-labelledby="ed-result-title">
               <div className="ed-rewrite-label" id="ed-result-title">
-                改写结果
+                润色结果
                 <span className="ed-rewrite-label-right">
                   {phase === "ready" ? (
-                    <Pill tone="accent">版本 {versionIndex + 1} / 2</Pill>
+                    <Pill tone="accent">已消耗 {lastCost} 点</Pill>
                   ) : (
                     <span className="t-11 t-muted">优先覆盖缺失关键词</span>
                   )}
@@ -208,15 +300,15 @@ export function RewriteDialog({
 
               {phase === "idle" ? (
                 <div className="ed-rewrite-placeholder">
-                  <p>点击「生成改写」，AI 会按目标岗位 JD 重写这段表达。</p>
+                  <p>点击「生成润色」，AI 会按目标岗位 JD 重写这段表达。</p>
                   <p className="t-11 t-muted">
-                    演示环境为本地模拟，约 900ms，不调用真实 AI 接口。
+                    只润色你真实填写的内容：不编造公司、学历与数字；没有数字时用可验证的规模表达。
                   </p>
                 </div>
               ) : null}
 
               {phase === "loading" ? (
-                <div className="ed-skeleton" role="status" aria-label="正在生成改写">
+                <div className="ed-skeleton" role="status" aria-label="正在生成润色">
                   <span className="ed-skeleton-bar" />
                   <span className="ed-skeleton-bar" />
                   <span className="ed-skeleton-bar is-short" />
@@ -225,14 +317,45 @@ export function RewriteDialog({
 
               {phase === "ready" ? (
                 <div className="ed-rewrite-result" aria-live="polite">
-                  {highlightText(versions![versionIndex], job!.keywords)}
+                  <div className="ed-rewrite-result-text">
+                    {highlightText(result, job!.keywords)}
+                  </div>
+                  <div className="ed-ai-meta">
+                    <span>模型：{lastModel || "deepseek-chat"}</span>
+                    <span>重新生成会再次扣 {cost} 点</span>
+                  </div>
+                </div>
+              ) : null}
+
+              {phase === "error" ? (
+                <div className="ed-ai-error" role="alert">
+                  <span className="ed-ai-error-title">
+                    <Icon name="warning" size={14} />
+                    {errorCode === "ai_not_configured"
+                      ? "AI 服务尚未配置"
+                      : errorCode === "insufficient_credits"
+                        ? "点数不足"
+                        : "生成失败"}
+                  </span>
+                  <p className="ed-ai-error-text">{errorMessage}</p>
+                  {errorCode === "insufficient_credits" ? (
+                    <Link className="btn btn-primary btn-sm" href="/dashboard/settings">
+                      去购买点数
+                    </Link>
+                  ) : null}
+                  {errorCode === "ai_error" || errorCode === "parse_error" ? (
+                    <p className="t-11 t-muted">
+                      本次点数已自动退回；可以点「重试」再生成一次。
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
             </section>
           </div>
 
           <p className="ed-rewrite-note">
-            应用后：更新这段内容 · AI 改写次数 +1 · 顶栏保存状态自动同步。本次不消耗其他额度。
+            应用后：更新这段内容并自动保存 · 本次消耗 {cost} 点（服务端预扣，失败自动退回）·
+            点数余额会立即刷新。
           </p>
         </div>
       )}

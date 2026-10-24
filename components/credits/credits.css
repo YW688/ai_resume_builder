@@ -1,0 +1,580 @@
+/* ==========================================================================
+   AI 点数（额度点）UI
+   余额面板 / 每日免费进度 / 套餐卡 / 消耗规则 / 点数明细 / 订单 / 侧栏点数卡
+   颜色一律引用 app-ui.css 的 --ui-* token；不引入新依赖。
+   ========================================================================== */
+
+/* ------------------------------ 图标容器 ------------------------------ */
+
+.credit-icon {
+  flex: none;
+  display: inline-block;
+  vertical-align: middle;
+  overflow: visible;
+}
+
+/* ------------------------------ 余额面板 ------------------------------ */
+
+.credit-balance {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.credit-balance-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* 玻璃拟态底：与落地页 glass-panel 同气质，但只用 token 色。 */
+.credit-token-plate {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border: 1px solid rgba(26, 107, 214, 0.2);
+  border-radius: 20px;
+  background:
+    radial-gradient(120% 120% at 30% 18%, #ffffff 0%, rgba(244, 248, 252, 0.94) 52%, rgba(216, 232, 251, 0.92) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.credit-balance-body {
+  min-width: 0;
+}
+
+.credit-balance-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ui-muted);
+}
+
+.credit-balance-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.credit-balance-value {
+  font-size: 46px;
+  font-weight: 680;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.credit-balance-unit {
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--ui-muted);
+}
+
+.credit-balance-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.credit-balance-actions {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.credit-balance-actions .t-11 {
+  max-width: 200px;
+  text-align: right;
+}
+
+/* --------------------------- 每日免费额度进度 --------------------------- */
+
+.credit-daily {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: var(--ui-raised);
+}
+
+.credit-daily-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.credit-daily-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.credit-daily-value {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.credit-daily .progress {
+  margin-top: 9px;
+}
+
+.credit-daily-foot {
+  margin-top: 7px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ui-muted);
+}
+
+/* ------------------------------ 提示条 ------------------------------- */
+
+.credit-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: var(--ui-raised);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ui-muted);
+}
+
+.credit-notice-icon {
+  flex: none;
+  margin-top: 1px;
+  color: currentColor;
+}
+
+.credit-notice.is-success {
+  border-color: #bfe3cd;
+  background: var(--ui-positive-bg);
+  color: #1d5f3f;
+}
+
+.credit-notice.is-error {
+  border-color: #f3c5c3;
+  background: var(--ui-negative-bg);
+  color: var(--ui-negative);
+}
+
+.credit-notice.is-info {
+  border-color: #f0dcaa;
+  background: var(--ui-warning-bg);
+  color: var(--ui-warning);
+}
+
+/* ------------------------------ 套餐卡片 ------------------------------ */
+
+.credit-packages {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.credit-packages.is-modal {
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.credit-package {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
+  background: var(--ui-surface);
+  transition:
+    border-color 140ms var(--ui-ease),
+    background-color 140ms var(--ui-ease);
+}
+
+.credit-package:hover {
+  border-color: var(--ui-control);
+}
+
+.credit-package.is-recommended {
+  border-color: #c7d9f2;
+  background: linear-gradient(180deg, #f5f9ff 0%, #ffffff 62%);
+  box-shadow: 0 10px 26px rgba(20, 87, 173, 0.08);
+}
+
+.credit-package.is-recommended:hover {
+  border-color: #a9c7ee;
+}
+
+.credit-package-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+}
+
+.credit-package-name {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.credit-package-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.credit-package-price {
+  font-size: 27px;
+  font-weight: 680;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.credit-package-unit {
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
+.credit-package-tagline {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ui-muted);
+}
+
+.credit-package-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ui-text);
+}
+
+.credit-package-facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.credit-package-facts li::before {
+  content: "";
+  flex: none;
+  width: 4px;
+  height: 4px;
+  margin-top: 8px;
+  border-radius: 50%;
+  background: var(--ui-accent);
+}
+
+.credit-package.is-recommended .credit-package-facts li::before {
+  background: var(--ui-accent-strong);
+}
+
+.credit-package-save {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ui-positive);
+}
+
+.credit-package-foot {
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.credit-package-foot .btn {
+  width: 100%;
+}
+
+/* ------------------------------ 消耗规则 ------------------------------ */
+
+.credit-cost-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.credit-cost-table th {
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--ui-rule);
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ui-muted);
+  white-space: nowrap;
+}
+
+.credit-cost-table th.is-right,
+.credit-cost-table td.is-right {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.credit-cost-table td {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ui-rule);
+  vertical-align: top;
+}
+
+.credit-cost-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.credit-cost-name {
+  font-weight: 550;
+  line-height: 1.5;
+}
+
+.credit-cost-desc {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ui-muted);
+}
+
+.credit-cost-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.credit-cost-free {
+  color: var(--ui-positive);
+  font-weight: 600;
+}
+
+/* ------------------------------ 点数明细 ------------------------------ */
+
+.credit-ledger {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.credit-ledger-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--ui-rule);
+}
+
+.credit-ledger-row:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.credit-ledger-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.credit-ledger-title {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.credit-ledger-meta {
+  margin-top: 1px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ui-muted);
+}
+
+.credit-ledger-delta {
+  flex: none;
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-text);
+  white-space: nowrap;
+}
+
+.credit-ledger-delta.is-plus {
+  color: var(--ui-positive);
+}
+
+.credit-ledger-sub {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--ui-faint);
+}
+
+/* ------------------------------ 侧栏点数卡 ----------------------------- */
+
+.credit-mini {
+  padding: 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  background: var(--ui-surface);
+}
+
+.credit-mini-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.credit-mini-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.credit-mini-tier {
+  font-size: 11px;
+  color: var(--ui-muted);
+  white-space: nowrap;
+}
+
+.credit-mini-balance {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.credit-mini-balance strong {
+  font-size: 23px;
+  font-weight: 680;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.credit-mini-balance span {
+  font-size: 11.5px;
+  color: var(--ui-muted);
+}
+
+.credit-mini-daily {
+  margin-top: 8px;
+}
+
+.credit-mini-daily-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ui-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.credit-mini-daily .progress {
+  margin-top: 5px;
+}
+
+.credit-mini-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ui-rule);
+}
+
+.credit-mini-foot .plan-link {
+  font-size: 12px;
+}
+
+/* ------------------------------- 响应式 ------------------------------- */
+
+@media (max-width: 900px) {
+  .credit-packages.is-modal {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  /* 点数面板底栏：窄屏下改为上下两行，避免左右挤压换行。 */
+  .panel-foot.credit-foot {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  /* 订单表列较多，保留完整信息，横向滚动而不是把日期/金额挤成两行。 */
+  .credit-orders-table {
+    min-width: 520px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .credit-packages {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .credit-balance {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .credit-balance-value {
+    font-size: 40px;
+  }
+
+  .credit-balance-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .credit-balance-actions .btn {
+    width: 100%;
+  }
+
+  .credit-balance-actions .t-11 {
+    max-width: none;
+    text-align: left;
+  }
+}
+
+@media (max-width: 480px) {
+  .credit-token-plate {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+  }
+
+  .credit-daily-value {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .credit-package {
+    transition: none;
+  }
+}

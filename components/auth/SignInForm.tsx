@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { signInWithEmail, type AuthFormState } from "@/app/sign-in/actions";
 import { AuthError, SubmitButton, inputClass } from "./form-ui";
+import { PasswordInput } from "./PasswordInput";
 
 export function SignInForm({ redirectUrl }: { redirectUrl: string }) {
   const [state, formAction, pending] = useActionState<AuthFormState, FormData>(
@@ -19,7 +20,7 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string }) {
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="sign-in-email"
-          className="text-[12.5px] font-medium text-[#3c4a5e]"
+          className="text-[12.5px] font-semibold text-[#26364b]"
         >
           邮箱
         </label>
@@ -35,24 +36,14 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string }) {
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="sign-in-password"
-          className="text-[12.5px] font-medium text-[#3c4a5e]"
-        >
-          密码
-        </label>
-        <input
-          id="sign-in-password"
-          name="password"
-          type="password"
-          required
-          autoComplete="current-password"
-          placeholder="请输入密码"
-          className={inputClass}
-          disabled={pending}
-        />
-      </div>
+      <PasswordInput
+        id="sign-in-password"
+        name="password"
+        label="密码"
+        autoComplete="current-password"
+        placeholder="请输入密码"
+        disabled={pending}
+      />
 
       <AuthError message={state?.error} />
 

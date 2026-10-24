@@ -445,22 +445,12 @@ export async function deleteAccount(): Promise<ActionResult<null>> {
 
   // 取消 Lemon Squeezy 订阅（TODO M6：调 LS API 取消活跃订阅）
 
-  const beforeRows = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.id, userId));
-  console.log("[deleteAccount] before delete rows =", beforeRows.length, "userId =", userId);
-
   // 3) 级联删除应用数据。
   // 删除前可能已有并发的 loadWorkspace 请求（例如页面里的轮询刷新）在飞行中，
   // 极端情况下会在第一次 delete 之后重新插入 users 行；这里做一次幂等补偿删除。
   // 并发请求可能在删除瞬间完成补建，连续补偿删除 5 次覆盖该窗口。
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const deleted = await db
-      .delete(users)
-      .where(eq(users.id, userId))
-      .returning({ id: users.id });
-    console.log("[deleteAccount] deleted rows =", deleted.length, "attempt =", attempt + 1);
+    await db.delete(users).where(eq(users.id, userId));
     if (attempt < 4) await new Promise((resolve) => setTimeout(resolve, 300));
   }
 

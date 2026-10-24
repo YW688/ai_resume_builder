@@ -2,11 +2,26 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useWorkspace } from "@/lib/mock/store";
-import { applicationCounts, daysLeft, formatDate, formatMoney } from "@/lib/mock/compute";
+import { applicationCounts, formatDate, formatDateTime } from "@/lib/mock/compute";
 import { DEMO_NOW } from "@/lib/mock/data";
 import type { Preferences, User } from "@/lib/mock/types";
+import {
+  CREDIT_COST_ROWS,
+  CREDIT_FEATURES,
+  CREDIT_PACKAGES,
+  DAILY_FREE_RULE_TEXT,
+  actionsPerPackage,
+  formatPoints,
+  formatYuan,
+  packageDiscountPercent,
+  pointsUnitPriceFen,
+  type CreditLedgerEntry,
+  type CreditPackage,
+} from "@/lib/credits/catalog";
+import { getCreditLedgerAction } from "@/lib/workspace/actions";
+import { CreditIcon } from "@/components/credits/CreditIcon";
 import {
   Btn,
   ConfirmDialog,
@@ -21,15 +36,30 @@ import { Icon, type IconName } from "@/components/app/icons";
 import { deleteAccount } from "@/lib/actions";
 import { authClient } from "@/lib/auth/client";
 import "./settings.css";
+import "@/components/credits/credits.css";
 
 type ViewId = "profile" | "preferences" | "plan" | "data";
 
 const VIEWS: { id: ViewId; label: string; icon: IconName }[] = [
   { id: "profile", label: "个人资料", icon: "user" },
   { id: "preferences", label: "求职偏好", icon: "sliders" },
-  { id: "plan", label: "套餐与用量", icon: "chart" },
+  { id: "plan", label: "点数与套餐", icon: "chart" },
   { id: "data", label: "数据与隐私", icon: "lock" },
 ];
+
+/** 点数流水类型 → 中文文案。 */
+const LEDGER_KIND_LABEL: Record<CreditLedgerEntry["kind"], string> = {
+  purchase: "购买点数",
+  grant: "赠送点数",
+  spend: "消耗点数",
+  refund: "点数退回",
+  expire: "点数过期",
+};
+
+type PurchaseNotice = {
+  tone: "success" | "error" | "info";
+  text: string;
+};
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -241,7 +271,7 @@ function AccountSummary() {
     ),
   );
   const thisWeek = applicationCounts(state.applications).thisWeek;
-  const left = daysLeft(state.plan.expiresAt);
+  const credits = state.credits;
 
   return (
     <section className="panel account-summary" aria-labelledby="account-summary-title">
@@ -265,13 +295,16 @@ function AccountSummary() {
           </div>
         </div>
         <div>
-          <div className="kpi-label">当前套餐</div>
+          <div className="kpi-label">点数余额</div>
           <div className="kpi-value-row">
-            <span className="kpi-value" style={{ fontSize: 18 }}>
-              {state.plan.name}
+            <span className="kpi-value" style={{ fontSize: 24 }}>
+              {credits.balance}
             </span>
+            <span className="kpi-unit">点</span>
           </div>
-          <div className="kpi-note">剩 {left} 天到期</div>
+          <div className="kpi-note">
+            今日免费还剩 {credits.dailyRemaining} / {credits.dailyFree} 点
+          </div>
         </div>
         <div>
           <div className="kpi-label">简历</div>
@@ -461,238 +494,515 @@ function PreferencesPanel() {
   );
 }
 
-/* -------------------------------- 套餐与用量 ------------------------------- */
+/* -------------------------------- 点数与套餐 ------------------------------- */
+
+/** 单张套餐卡：设置页网格与购买弹窗共用。 */
+function CreditPackageCard({
+  pkg,
+  purchasing,
+  onBuy,
+}: {
+  pkg: CreditPackage;
+  purchasing: boolean;
+  onBuy: (packageId: string) => void;
+}) {
+  const discount = packageDiscountPercent(pkg);
+  const perResume = actionsPerPackage(pkg, "resume_generate");
+
+  return (
+    <article
+      className={`credit-package${pkg.recommended ? " is-recommended" : ""}`}
+      aria-label={`${pkg.name}·${formatPoints(pkg.points)}`}
+    >
+      <div className="credit-package-head">
+        <h3 className="credit-package-name">{pkg.name}</h3>
+        <Pill tone={pkg.recommended ? "accent" : "outline"}>
+          {pkg.badge ?? (discount > 0 ? `省 ${discount}%` : "入门")}
+        </Pill>
+      </div>
+
+      <div className="credit-package-price-row">
+        <span className="credit-package-price">{formatYuan(pkg.priceFen)}</span>
+        <span className="credit-package-unit">
+          {formatPoints(pkg.points)} · 折合 {formatYuan(pointsUnitPriceFen(pkg))}/点
+        </span>
+      </div>
+
+      <p className="credit-package-tagline">
+        一次性购买 · 不自动续费 · {pkg.validityDays} 天有效
+      </p>
+
+      <ul className="credit-package-facts">
+        <li>约 {perResume} 份整份简历生成</li>
+        <li>按单段润色约 {pkg.points} 次</li>
+        {discount > 0 ? (
+          <li className="credit-package-save">比体验包单点低 {discount}%</li>
+        ) : (
+          <li>单点价格基准</li>
+        )}
+      </ul>
+
+      <div className="credit-package-foot">
+        <Btn
+          variant={pkg.recommended ? "primary" : "secondary"}
+          loading={purchasing}
+          disabled={purchasing}
+          onClick={() => onBuy(pkg.id)}
+        >
+          购买 {pkg.name}
+        </Btn>
+      </div>
+    </article>
+  );
+}
 
 function PlanPanel() {
-  const { state, renewPlan, toast } = useWorkspace();
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [method, setMethod] = useState<"alipay" | "wechat">("alipay");
-  const plan = state.plan;
-  const left = daysLeft(plan.expiresAt);
-  const price = formatMoney(plan.priceFen);
+  const { state, purchaseCredits } = useWorkspace();
+  const credits = state.credits;
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [notice, setNotice] = useState<PurchaseNotice | null>(null);
+  const [ledger, setLedger] = useState<CreditLedgerEntry[] | null>(null);
+  const [ledgerError, setLedgerError] = useState<string | null>(null);
+  const [ledgerVersion, setLedgerVersion] = useState(0);
 
-  function confirmCheckout() {
-    renewPlan();
-    setCheckoutOpen(false);
-    toast({
-      title: "已续购（演示）",
-      description: "有效期已顺延 30 天，未产生真实扣款。",
-      tone: "positive",
-    });
+  // 点数流水是可选增强：失败只在本卡内提示，不影响余额与购买流程。
+  useEffect(() => {
+    let active = true;
+    getCreditLedgerAction()
+      .then((rows) => {
+        if (active) setLedger(rows);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setLedger([]);
+        setLedgerError(
+          error instanceof Error && error.message
+            ? error.message
+            : "暂时无法加载点数明细。",
+        );
+      });
+    return () => {
+      active = false;
+    };
+  }, [ledgerVersion]);
+
+  const dailyPct =
+    credits.dailyFree > 0 ? (credits.dailyUsed / credits.dailyFree) * 100 : 0;
+  const dailyLeft = Math.max(0, credits.dailyRemaining);
+  const iconTone =
+    credits.balance > 0
+      ? ("default" as const)
+      : credits.plan === "free"
+        ? ("free" as const)
+        : ("low" as const);
+  const lowBalance = credits.plan === "member" && credits.balance === 0;
+  const orders = state.plan.orders;
+
+  async function buy(packageId: string) {
+    if (purchasing) return;
+    setPurchasing(packageId);
+    setNotice(null);
+    try {
+      const result = await purchaseCredits(packageId);
+      if (!result.ok) {
+        setNotice({
+          tone: "error",
+          text: result.message ?? "购买未完成，请稍后重试。",
+        });
+        return;
+      }
+      setNotice({
+        tone: "info",
+        text: result.simulated
+          ? "本机沙箱：点数已模拟到账，不产生真实扣款。"
+          : "支付成功，点数已到账。",
+      });
+      setPurchaseOpen(false);
+      setLedgerVersion((version) => version + 1);
+    } finally {
+      setPurchasing(null);
+    }
   }
+
+  const noticeBlock = notice ? (
+    <div
+      className={`credit-notice is-${notice.tone} mt-12`}
+      role={notice.tone === "error" ? "alert" : "status"}
+      aria-live="polite"
+    >
+      <span className="credit-notice-icon">
+        <Icon
+          name={
+            notice.tone === "error"
+              ? "warning"
+              : notice.tone === "success"
+                ? "checkCircle"
+                : "info"
+          }
+          size={14}
+        />
+      </span>
+      <span>{notice.text}</span>
+    </div>
+  ) : null;
 
   return (
     <>
       <div className="grid-12">
-        <section className="panel span-6" aria-labelledby="plan-title">
-          <div className="panel-head">
-            <div>
-              <h2 className="panel-title" id="plan-title">
-                当前套餐
-              </h2>
-              <p className="panel-sub">一份通行证，简历与 AI 改写不限量</p>
-            </div>
-            <Pill tone={left > 0 ? "accent" : "warning"}>
-              {left > 0 ? "生效中" : "已到期"}
-            </Pill>
-          </div>
-          <div className="panel-body">
-            <div className="row-between">
-              <div style={{ fontSize: 18, fontWeight: 650 }}>{plan.name}</div>
-              <div className="t-11 t-muted">30 天为一期</div>
-            </div>
-            <div className="plan-facts">
-              <div>
-                <div className="plan-fact-label">剩余天数</div>
-                <div className="plan-fact-value">{left} 天</div>
-              </div>
-              <div>
-                <div className="plan-fact-label">到期日</div>
-                <div className="plan-fact-value">
-                  {formatDate(plan.expiresAt, "long")}
-                </div>
-              </div>
-              <div>
-                <div className="plan-fact-label">自动续费</div>
-                <div className="plan-fact-value">
-                  {plan.autoRenew ? "已开启" : "不自动续费"}
-                </div>
-              </div>
-              <div>
-                <div className="plan-fact-label">价格</div>
-                <div className="plan-fact-value">{price} / 30 天</div>
-              </div>
-            </div>
-          </div>
-          <div className="panel-foot">
-            <span>到期后降为免费额度，已写内容保留</span>
-            <Btn
-              variant="primary"
-              icon="refresh"
-              onClick={() => setCheckoutOpen(true)}
-            >
-              续购 30 天 · {price}
-            </Btn>
-          </div>
-        </section>
-
-        <section className="panel span-6" aria-labelledby="usage-title">
+        {/* 余额 + 每日免费额度 */}
+        <section className="panel span-12" aria-labelledby="credits-title">
           <div className="panel-head has-rule">
             <div>
-              <h2 className="panel-title" id="usage-title">
-                本月用量
+              <h2 className="panel-title" id="credits-title">
+                点数余额
               </h2>
-              <p className="panel-sub">通行证内不限量，这里只记录实际次数</p>
+              <p className="panel-sub">
+                AI 能力按点扣除；PDF 导出免费，不消耗点数。
+              </p>
+            </div>
+            <div className="panel-head-actions">
+              <Pill tone={lowBalance ? "warning" : "accent"} dot>
+                {lowBalance
+                  ? "余额不足"
+                  : credits.plan === "member"
+                    ? "点数会员"
+                    : "每日免费额度"}
+              </Pill>
             </div>
           </div>
           <div className="panel-body">
-            <div className="usage-row">
-              <div className="row-between">
-                <span className="fw-500">AI 改写</span>
-                <span className="t-11 t-muted num">{plan.usage.aiRewrites} 次</span>
+            <div className="credit-balance">
+              <div className="credit-balance-main">
+                <span className="credit-token-plate">
+                  <CreditIcon size={44} tone={iconTone} decorative />
+                </span>
+                <div className="credit-balance-body">
+                  <div className="credit-balance-label">可用点数</div>
+                  <div className="credit-balance-value-row">
+                    <span className="credit-balance-value num">
+                      {credits.balance}
+                    </span>
+                    <span className="credit-balance-unit">点</span>
+                  </div>
+                  <div className="credit-balance-meta">
+                    {credits.plan === "member" ? (
+                      <span>
+                        有效期至{" "}
+                        {credits.expiresAt ? formatDate(credits.expiresAt) : "—"}
+                      </span>
+                    ) : (
+                      <span>尚未购买点数，先用每日免费额度</span>
+                    )}
+                    {lowBalance ? (
+                      <Pill tone="warning">AI 生成一份简历需要 2 点</Pill>
+                    ) : null}
+                  </div>
+                </div>
               </div>
-              <div className="usage-meter">
-                <Progress value={100} />
-                <span className="t-11 t-muted nowrap">不限</span>
+              <div className="credit-balance-actions">
+                <Btn
+                  variant="primary"
+                  icon="plus"
+                  onClick={() => setPurchaseOpen(true)}
+                >
+                  购买点数
+                </Btn>
+                <span className="t-11 t-muted">
+                  一次性购买 · 不自动续费 · 沙箱演示不产生真实扣款
+                </span>
               </div>
             </div>
-            <div className="usage-row">
-              <div className="row-between">
-                <span className="fw-500">PDF 导出</span>
-                <span className="t-11 t-muted num">{plan.usage.exports} 次</span>
+
+            <div className="credit-daily">
+              <div className="credit-daily-head">
+                <span className="credit-daily-title">
+                  <CreditIcon size={16} tone="free" decorative />
+                  今日免费额度
+                </span>
+                <Pill tone={dailyLeft > 0 ? "positive" : "warning"}>
+                  {dailyLeft > 0 ? `还剩 ${dailyLeft} 点` : "今日已用完"}
+                </Pill>
+                <span className="credit-daily-value num">
+                  {credits.dailyUsed} / {credits.dailyFree} 点
+                </span>
               </div>
-              <div className="usage-meter">
-                <Progress value={100} />
-                <span className="t-11 t-muted nowrap">不限</span>
-              </div>
+              <Progress value={dailyPct} tone="warning" />
+              <p className="credit-daily-foot">
+                已用 {credits.dailyUsed} 点，剩余 {credits.dailyRemaining} 点；
+                下次重置 {formatDateTime(credits.resetAt)}。
+                {DAILY_FREE_RULE_TEXT}。
+              </p>
             </div>
-            <div className="usage-row">
-              <div className="row-between">
-                <span className="fw-500">简历数量</span>
-                <span className="t-11 t-muted num">{state.resumes.length} 份</span>
-              </div>
-              <div className="usage-meter">
-                <Progress value={100} />
-                <span className="t-11 t-muted nowrap">不限</span>
-              </div>
-            </div>
+
+            {noticeBlock}
           </div>
-          <div className="panel-foot">
-            <span>用量统计来自 Neon 数据库</span>
+          <div className="panel-foot credit-foot">
+            <span>
+              每次 AI 操作先扣每日免费额度，再扣购买点数；PDF 导出始终免费。
+            </span>
+            <span className="num">当前余额 {credits.balance} 点</span>
           </div>
         </section>
 
-        <section className="panel span-12" aria-labelledby="orders-title">
+        {/* 套餐购买 */}
+        <section className="panel span-12" aria-labelledby="packages-title">
           <div className="panel-head has-rule">
             <div>
-              <h2 className="panel-title" id="orders-title">
-                订单记录
+              <h2 className="panel-title" id="packages-title">
+                购买点数
               </h2>
-              <p className="panel-sub">演示环境订单，不会真实扣款</p>
+              <p className="panel-sub">
+                三档套餐均为一次性购买，不自动续费；点数在套餐有效期内可用。
+              </p>
             </div>
           </div>
-          <div className="panel-body flush">
-            <table className="data-table">
+          <div className="panel-body">
+            <div className="credit-packages">
+              {CREDIT_PACKAGES.map((pkg) => (
+                <CreditPackageCard
+                  key={pkg.id}
+                  pkg={pkg}
+                  purchasing={purchasing !== null}
+                  onBuy={buy}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="panel-foot credit-foot">
+            <span>
+              点数为一次性购买，不自动续费、不自动扣款；到期未用完的点数会失效。
+            </span>
+            <span>演示环境付款为沙箱模拟</span>
+          </div>
+        </section>
+
+        {/* 消耗规则 */}
+        <section className="panel span-7" aria-labelledby="cost-title">
+          <div className="panel-head has-rule">
+            <div>
+              <h2 className="panel-title" id="cost-title">
+                点数消耗规则
+              </h2>
+              <p className="panel-sub">AI 能力按点计费，导出不收费</p>
+            </div>
+          </div>
+          <div className="panel-body">
+            <table className="credit-cost-table">
+              <caption className="sr-only">
+                各类 AI 操作的消耗点数与说明
+              </caption>
               <thead>
                 <tr>
-                  <th scope="col">日期</th>
-                  <th scope="col">项目</th>
-                  <th scope="col" className="num">
-                    金额
+                  <th scope="col">功能</th>
+                  <th scope="col" className="is-right">
+                    消耗
                   </th>
-                  <th scope="col">状态</th>
                 </tr>
               </thead>
               <tbody>
-                {plan.orders.map((order) => (
-                  <tr key={order.id}>
-                    <td title={formatDate(order.at, "long")}>
-                      {formatDate(order.at, "short")}
-                    </td>
-                    <td>{order.label}</td>
-                    <td className="num">{formatMoney(order.amountFen)}</td>
+                {CREDIT_COST_ROWS.map((row) => (
+                  <tr key={row.feature}>
                     <td>
-                      <Pill tone="positive">
-                        {order.status === "paid" ? "已支付" : order.status}
-                      </Pill>
+                      <div className="credit-cost-name">{row.label}</div>
+                      <div className="credit-cost-desc">{row.description}</div>
+                    </td>
+                    <td className="is-right">
+                      {row.cost === 0 ? (
+                        <span className="credit-cost-free">免费</span>
+                      ) : (
+                        <span className="credit-cost-value">
+                          −{row.cost} 点
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <div className="panel-foot">
+            <span>{DAILY_FREE_RULE_TEXT}。</span>
+          </div>
+        </section>
+
+        {/* 点数明细 */}
+        <section className="panel span-5" aria-labelledby="ledger-title">
+          <div className="panel-head has-rule">
+            <div>
+              <h2 className="panel-title" id="ledger-title">
+                点数明细
+              </h2>
+              <p className="panel-sub">最近的获得与消耗记录</p>
+            </div>
+          </div>
+          <div className="panel-body">
+            {ledgerError ? (
+              <div className="credit-notice is-error" role="alert">
+                <span className="credit-notice-icon">
+                  <Icon name="warning" size={14} />
+                </span>
+                <span style={{ flex: 1 }}>
+                  {ledgerError}
+                  <Btn
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setLedgerError(null);
+                      setLedger(null);
+                      setLedgerVersion((version) => version + 1);
+                    }}
+                  >
+                    重试
+                  </Btn>
+                </span>
+              </div>
+            ) : ledger === null ? (
+              <p className="t-12 t-muted">正在加载点数明细…</p>
+            ) : ledger.length === 0 ? (
+              <div className="empty" style={{ padding: "16px 0" }}>
+                <div className="empty-title">还没有点数记录</div>
+                <div className="empty-desc">
+                  购买或消耗点数后，会在这里看到每一笔变动。
+                </div>
+              </div>
+            ) : (
+              <ul className="credit-ledger">
+                {ledger.map((entry) => {
+                  const featureLabel = entry.feature
+                    ? CREDIT_FEATURES[entry.feature].shortLabel
+                    : null;
+                  return (
+                    <li key={entry.id} className="credit-ledger-row">
+                      <div className="credit-ledger-main">
+                        <div className="credit-ledger-title">
+                          {LEDGER_KIND_LABEL[entry.kind]}
+                          {featureLabel ? ` · ${featureLabel}` : ""}
+                        </div>
+                        <div className="credit-ledger-meta">
+                          {entry.note ? `${entry.note} · ` : ""}
+                          {formatDateTime(entry.at)} · 余额{" "}
+                          {entry.balanceAfter} 点
+                        </div>
+                      </div>
+                      <span
+                        className={`credit-ledger-delta${
+                          entry.delta > 0 ? " is-plus" : ""
+                        }`}
+                      >
+                        {entry.delta > 0 ? `+${entry.delta}` : entry.delta}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+          <div className="panel-foot credit-foot">
+            <span>明细来自服务端点数流水</span>
+            <span>最近 20 条</span>
+          </div>
+        </section>
+
+        {/* 订单记录 */}
+        <section className="panel span-12" aria-labelledby="orders-title">
+          <div className="panel-head has-rule">
+            <div>
+              <h2 className="panel-title" id="orders-title">
+                订单记录
+              </h2>
+              <p className="panel-sub">
+                点数套餐一次性购买，不自动续费
+              </p>
+            </div>
+          </div>
+          <div className="panel-body flush">
+            {orders.length === 0 ? (
+              <div className="empty" style={{ padding: "20px 20px 24px" }}>
+                <div className="empty-title">还没有订单</div>
+                <div className="empty-desc">
+                  购买点数后会显示在这里，包括金额、到账点数与状态。
+                </div>
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table credit-orders-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">日期</th>
+                      <th scope="col">项目</th>
+                      <th scope="col" className="num">
+                        到账点数
+                      </th>
+                      <th scope="col" className="num">
+                        金额
+                      </th>
+                      <th scope="col">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order) => (
+                      <tr key={order.id}>
+                        <td title={formatDateTime(order.at)}>
+                          {formatDate(order.at, "short")}
+                        </td>
+                        <td className="cell-main">{order.label}</td>
+                        <td className="num">
+                          {typeof order.credits === "number"
+                            ? `+${order.credits}`
+                            : "—"}
+                        </td>
+                        <td className="num">{formatYuan(order.amountFen)}</td>
+                        <td>
+                          <Pill tone="positive">
+                            {order.status === "paid" ? "已支付" : order.status}
+                          </Pill>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          <div className="panel-foot credit-foot">
+            <span>点数为一次性购买，不自动续费；演示环境付款为沙箱模拟。</span>
+            <span className="num">共 {orders.length} 笔订单</span>
+          </div>
         </section>
       </div>
 
       <Modal
-        open={checkoutOpen}
-        onClose={() => setCheckoutOpen(false)}
-        title="续购 30 天通行证"
-        description="演示结算，仅用于展示购买流程。"
+        open={purchaseOpen}
+        onClose={() => setPurchaseOpen(false)}
+        title="购买点数"
+        description="一次性购买，不自动续费；点数在套餐有效期内可用。"
+        size="lg"
         footer={
           <>
-            <Btn variant="ghost" onClick={() => setCheckoutOpen(false)}>
-              取消
-            </Btn>
-            <Btn variant="primary" onClick={confirmCheckout}>
-              确认支付 {price}
+            <span className="t-11 t-muted">
+              演示环境付款为沙箱模拟，不产生真实扣款。
+            </span>
+            <Btn variant="ghost" onClick={() => setPurchaseOpen(false)}>
+              关闭
             </Btn>
           </>
         }
       >
-        <div className="stack-20">
-          <div className="summary">
-            <div className="summary-row">
-              <span>30 天通行证 × 1</span>
-              <span className="num">{price}</span>
-            </div>
-            <div className="summary-row">
-              <span>优惠</span>
-              <span className="num">¥0.00</span>
-            </div>
-            <div className="summary-row summary-total">
-              <span>合计</span>
-              <span className="num">{price}</span>
-            </div>
+        <div className="stack-16">
+          {noticeBlock}
+          <div className="credit-packages is-modal">
+            {CREDIT_PACKAGES.map((pkg) => (
+              <CreditPackageCard
+                key={pkg.id}
+                pkg={pkg}
+                purchasing={purchasing !== null}
+                onBuy={buy}
+              />
+            ))}
           </div>
-
-          <div>
-            <div className="field-label" style={{ marginBottom: 8 }}>
-              支付方式
-            </div>
-            <div className="pay-options" role="radiogroup" aria-label="支付方式">
-              {(
-                [
-                  { value: "alipay", label: "支付宝" },
-                  { value: "wechat", label: "微信支付" },
-                ] as const
-              ).map((option) => (
-                <label
-                  key={option.value}
-                  className={`pay-option${method === option.value ? " is-active" : ""}`}
-                >
-                  <input
-                    type="radio"
-                    name="pay-method"
-                    value={option.value}
-                    checked={method === option.value}
-                    onChange={() => setMethod(option.value)}
-                  />
-                  <span>{option.label}</span>
-                  {method === option.value ? (
-                    <Icon
-                      name="check"
-                      size={14}
-                      className="pay-check"
-                    />
-                  ) : null}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <p className="t-11 t-muted">
-            演示环境不会真实扣款。确认后有效期在现有到期日基础上顺延 30 天。
+          <p className="t-11 t-muted" style={{ margin: 0 }}>
+            购买后点数立即到账，可在「点数明细」中查看每一笔获得与消耗；到期未用完的点数会失效。
           </p>
         </div>
       </Modal>
@@ -875,7 +1185,7 @@ export function SettingsScreen() {
       <div className="page-head">
         <div className="page-head-main">
           <h1 className="page-title">设置</h1>
-          <p className="page-sub">账号、求职偏好与套餐</p>
+          <p className="page-sub">账号、求职偏好与点数</p>
         </div>
       </div>
 
@@ -906,7 +1216,11 @@ export function SettingsScreen() {
             </div>
           ) : null}
           {view === "preferences" ? <PreferencesPanel /> : null}
-          {view === "plan" ? <PlanPanel /> : null}
+          {view === "plan" ? (
+            <div className="settings-view-stack">
+              <PlanPanel />
+            </div>
+          ) : null}
           {view === "data" ? <DataPanel /> : null}
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -16,6 +17,18 @@ import {
 } from "@/drizzle/schema";
 import { requireUser } from "@/lib/dal";
 import { extractKeywordsViaFunction } from "@/lib/functions/extract-keywords";
+import { initialWorkspace } from "@/lib/mock/data";
+import { shanghaiDateKey } from "@/lib/credits/server";
+import type { CreditLedgerEntry, CreditsState } from "@/lib/credits/catalog";
+import {
+  getCreditLedger,
+  getCreditsState,
+} from "@/lib/credits/server";
+import {
+  purchaseCreditPackage,
+  type PayProvider,
+  type PurchaseOrder,
+} from "@/lib/pay";
 import type {
   AccentId,
   Application,
@@ -58,12 +71,36 @@ function toDateOrNow(value: string | null | undefined): Date {
 
 export async function loadWorkspaceAction(): Promise<WorkspaceState> {
   const userId = await requireUser();
-  return loadWorkspace(userId);
+  try {
+    return await loadWorkspace(userId);
+  } catch (error) {
+    // 会话在请求过程中失效（例如刚注销账号）时，按未登录处理。
+    if (error instanceof Error && error.message.startsWith("UNAUTHORIZED")) {
+      redirect("/sign-in");
+    }
+    throw error;
+  }
 }
 
 export async function resetDemoAction(): Promise<WorkspaceResult<WorkspaceState>> {
   const userId = await requireUser();
   await clearWorkspace(userId);
+  // 演示数据重置时把点数账户也恢复到示例状态，避免旧余额/流水残留。
+  await db
+    .update(users)
+    .set({
+      plan: "paid",
+      planName: initialWorkspace.plan.name,
+      planPriceFen: initialWorkspace.plan.priceFen,
+      planExpiresAt: new Date(initialWorkspace.plan.expiresAt),
+      creditsBalance: initialWorkspace.credits.balance,
+      creditsExpireAt: initialWorkspace.credits.expiresAt
+        ? new Date(initialWorkspace.credits.expiresAt)
+        : null,
+      dailyCreditsUsed: 0,
+      dailyCreditsDate: shanghaiDateKey(),
+    })
+    .where(eq(users.id, userId));
   await seedDemoWorkspace(userId);
   return { ok: true, data: await loadWorkspace(userId) };
 }
@@ -112,45 +149,94 @@ export async function saveResumeAction(resume: Resume): Promise<WorkspaceResult>
     if (existing[0]) {
       await db.update(resumes).set(values).where(eq(resumes.id, id));
     } else {
-      await db.insert(resumes).values({
-        id,
-        userId,
-        ...values,
-        createdAt: toDateOrNow(resume.createdAt),
-      });
+      await db
+        .insert(resumes)
+        .values({
+          id,
+          userId,
+          ...values,
+          createdAt: toDateOrNow(resume.createdAt),
+        })
+        .onConflictDoUpdate({ target: resumes.id, set: values });
     }
 
-    // 子项全量替换，保持 sortOrder = 数组下标
-    await db.delete(experiences).where(eq(experiences.resumeId, id));
-    await db.delete(educations).where(eq(educations.resumeId, id));
+    // 子项同步：先 upsert（并发保存时不会撞主键），再删掉本次未提交的行。
+    // 不能用「先 delete 再 insert」：两次并发 action 交错时会 duplicate key。
+    const experienceRows = (resume.experiences ?? []).map((item, index) => ({
+      id: item.id,
+      resumeId: id,
+      company: clean(item.company),
+      title: clean(item.title),
+      startDate: clean(item.startDate),
+      endDate: clean(item.endDate),
+      description: item.description ?? "",
+      sortOrder: index,
+    }));
+    const educationRows = (resume.educations ?? []).map((item, index) => ({
+      id: item.id,
+      resumeId: id,
+      school: clean(item.school),
+      degree: clean(item.degree),
+      major: clean(item.major),
+      startDate: clean(item.startDate),
+      endDate: clean(item.endDate),
+      sortOrder: index,
+    }));
 
-    if (resume.experiences?.length) {
-      await db.insert(experiences).values(
-        resume.experiences.map((item, index) => ({
-          id: item.id,
-          resumeId: id,
-          company: clean(item.company),
-          title: clean(item.title),
-          startDate: clean(item.startDate),
-          endDate: clean(item.endDate),
-          description: item.description ?? "",
-          sortOrder: index,
-        })),
-      );
+    if (experienceRows.length) {
+      await db
+        .insert(experiences)
+        .values(experienceRows)
+        .onConflictDoUpdate({
+          target: experiences.id,
+          set: {
+            resumeId: sql`excluded.resume_id`,
+            company: sql`excluded.company`,
+            title: sql`excluded.title`,
+            startDate: sql`excluded.start_date`,
+            endDate: sql`excluded.end_date`,
+            description: sql`excluded.description`,
+            sortOrder: sql`excluded.sort_order`,
+          },
+        });
+      await db
+        .delete(experiences)
+        .where(
+          and(
+            eq(experiences.resumeId, id),
+            notInArray(experiences.id, experienceRows.map((row) => row.id)),
+          ),
+        );
+    } else {
+      await db.delete(experiences).where(eq(experiences.resumeId, id));
     }
-    if (resume.educations?.length) {
-      await db.insert(educations).values(
-        resume.educations.map((item, index) => ({
-          id: item.id,
-          resumeId: id,
-          school: clean(item.school),
-          degree: clean(item.degree),
-          major: clean(item.major),
-          startDate: clean(item.startDate),
-          endDate: clean(item.endDate),
-          sortOrder: index,
-        })),
-      );
+
+    if (educationRows.length) {
+      await db
+        .insert(educations)
+        .values(educationRows)
+        .onConflictDoUpdate({
+          target: educations.id,
+          set: {
+            resumeId: sql`excluded.resume_id`,
+            school: sql`excluded.school`,
+            degree: sql`excluded.degree`,
+            major: sql`excluded.major`,
+            startDate: sql`excluded.start_date`,
+            endDate: sql`excluded.end_date`,
+            sortOrder: sql`excluded.sort_order`,
+          },
+        });
+      await db
+        .delete(educations)
+        .where(
+          and(
+            eq(educations.resumeId, id),
+            notInArray(educations.id, educationRows.map((row) => row.id)),
+          ),
+        );
+    } else {
+      await db.delete(educations).where(eq(educations.resumeId, id));
     }
   } catch (error) {
     console.error("saveResumeAction failed", error);
@@ -219,7 +305,10 @@ export async function saveJobAction(job: Job): Promise<WorkspaceResult<{ keyword
     if (existing[0]) {
       await db.update(jobs).set(values).where(eq(jobs.id, job.id));
     } else {
-      await db.insert(jobs).values({ id: job.id, userId, ...values });
+      await db
+        .insert(jobs)
+        .values({ id: job.id, userId, ...values })
+        .onConflictDoUpdate({ target: jobs.id, set: values });
     }
   } catch (error) {
     console.error("saveJobAction failed", error);
@@ -279,7 +368,10 @@ export async function saveApplicationAction(application: Application): Promise<W
     if (existing[0]) {
       await db.update(applications).set(values).where(eq(applications.id, application.id));
     } else {
-      await db.insert(applications).values({ id: application.id, userId, ...values });
+      await db
+        .insert(applications)
+        .values({ id: application.id, userId, ...values })
+        .onConflictDoUpdate({ target: applications.id, set: values });
     }
   } catch (error) {
     console.error("saveApplicationAction failed", error);
@@ -488,3 +580,54 @@ export async function recordUsageAction(kind: "ai" | "export"): Promise<Workspac
 
 // 显式引用以保持导出类型稳定（避免 tsc 未使用告警）
 export type { Job, NotificationKind };
+
+// ---------------------------------------------------------------------------
+// AI 点数（2026-10 计费重构）
+// ---------------------------------------------------------------------------
+
+export type PurchaseCreditsData = {
+  credits: CreditsState;
+  order: PurchaseOrder;
+  provider: PayProvider;
+  simulated: boolean;
+};
+
+/**
+ * 购买点数套餐（一次性，不自动续费）。
+ * manual 渠道会同步到账；真实渠道未接入时返回明确错误而不是假成功。
+ */
+export async function purchaseCreditsAction(
+  packageId: string,
+): Promise<WorkspaceResult<PurchaseCreditsData>> {
+  const userId = await requireUser();
+  try {
+    const result = await purchaseCreditPackage(userId, packageId);
+    if (!result.ok) {
+      return { ok: false, error: result.error, message: result.message };
+    }
+    return {
+      ok: true,
+      data: {
+        credits: result.credits,
+        order: result.order,
+        provider: result.provider,
+        simulated: result.simulated,
+      },
+    };
+  } catch (error) {
+    console.error("purchaseCreditsAction failed", error);
+    return { ok: false, error: "purchase_failed", message: "购买失败，请稍后重试" };
+  }
+}
+
+/** 只刷新点数状态（AI 调用后、跨天后下拉刷新等场景）。 */
+export async function refreshCreditsAction(): Promise<CreditsState> {
+  const userId = await requireUser();
+  return getCreditsState(userId);
+}
+
+/** 最近点数流水（设置页「点数明细」）。 */
+export async function getCreditLedgerAction(): Promise<CreditLedgerEntry[]> {
+  const userId = await requireUser();
+  return getCreditLedger(userId, 20);
+}

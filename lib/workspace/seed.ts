@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   applications,
+  creditLedger,
   educations,
   experiences,
   jobs,
@@ -36,6 +37,7 @@ export async function clearWorkspace(userId: string): Promise<void> {
   await db.delete(resumes).where(eq(resumes.userId, userId)); // experiences/educations 级联
   await db.delete(jobs).where(eq(jobs.userId, userId));
   await db.delete(orders).where(eq(orders.userId, userId));
+  await db.delete(creditLedger).where(eq(creditLedger.userId, userId));
   await db.delete(preferences).where(eq(preferences.userId, userId));
 }
 
@@ -131,10 +133,37 @@ export async function seedDemoWorkspace(userId: string): Promise<void> {
             amountFen: order.amountFen,
             label: order.label,
             status: order.status,
+            packageId: order.packageId ?? null,
+            credits: order.credits ?? 0,
+            provider: "manual",
+            paidAt: new Date(order.at),
             sortOrder: index,
           })),
         )
       : Promise.resolve(),
+    // 演示点数流水：让「余额 18」在设置页的明细里有据可查（45 购买 - 27 消耗）。
+    db.insert(creditLedger).values([
+      {
+        userId,
+        delta: 45,
+        balanceAfter: 45,
+        kind: "purchase",
+        feature: null,
+        ref: null,
+        note: "求职包 · 45 点（演示数据）",
+        createdAt: new Date("2026-10-06T10:12:00+08:00"),
+      },
+      {
+        userId,
+        delta: -27,
+        balanceAfter: 18,
+        kind: "spend",
+        feature: "resume_generate",
+        ref: null,
+        note: "AI 整份生成与段落润色（演示数据）",
+        createdAt: new Date("2026-10-20T21:30:00+08:00"),
+      },
+    ]),
   ]);
 
   if (DEMO.resumes.length > 0) {
