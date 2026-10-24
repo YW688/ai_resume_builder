@@ -11,6 +11,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node scripts/db/seed.mjs",
     "db:inspect": "node scripts/db/inspect.mjs",
+    "legal:render": "node scripts/legal/render-docs.mjs",
     "functions:deploy": "neon deploy -y --config-dir .neon-config",
     "functions:list": "neon functions list --config-dir .neon-config"
   },

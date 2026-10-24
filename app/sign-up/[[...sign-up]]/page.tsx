@@ -32,11 +32,16 @@ export default function SignUpPage({
       subtitle="用邮箱注册，免费开始制作你的第一份简历。"
       footer={
         <p className="leading-relaxed">
-          注册即表示同意
+          注册即表示你已阅读并同意
+          <Link href="/terms" className="mx-0.5 text-[#1A6BD6] hover:underline">
+            《用户服务条款》
+          </Link>
+          与
           <Link href="/privacy" className="mx-0.5 text-[#1A6BD6] hover:underline">
             《隐私政策》
           </Link>
-          。密码由 Neon Auth 托管，本应用不存储明文密码。
+          ，并了解你的个人信息可能按隐私政策传输至中国境外处理。密码由 Neon Auth
+          托管，本应用不存储明文密码。
         </p>
       }
     >

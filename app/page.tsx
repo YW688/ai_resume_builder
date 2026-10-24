@@ -69,8 +69,8 @@ const CAPABILITIES = [
     desc: "服务端排版生成页边距干净的 A4 PDF，导出即可投递。",
   },
   {
-    title: "境内存储",
-    desc: "简历与照片存于境内数据中心，不跨境传输。",
+    title: "账号保存",
+    desc: "简历与投递记录随账号保存，登录即可继续编辑。",
   },
   {
     title: "注销即删",
@@ -85,7 +85,7 @@ const FAQS = [
   },
   {
     q: "我的简历和照片存在哪里？",
-    a: "全部存于中国大陆境内数据中心，仅用于简历排版与导出。照片属于敏感个人信息，上传前需要你的单独同意；注销账号时随其余数据一并删除。",
+    a: "简历、目标岗位与投递记录保存在我们的托管数据库（Neon）中；照片当前只在你的浏览器本地预览，并随 PDF 导出临时处理，不会保存到服务器。数据存储区域、跨境传输与你的权利详见《隐私政策》；注销账号时账号数据会一并删除。",
   },
   {
     q: "能不能换模板？",
@@ -378,9 +378,9 @@ function About() {
               </p>
             </div>
             <div className="glass-panel rounded-2xl p-5">
-              <p className="text-sm font-semibold text-[#0E1B2A]">数据在境内</p>
+              <p className="text-sm font-semibold text-[#0E1B2A]">账号保存</p>
               <p className="mt-1 text-sm leading-relaxed text-[#0E1B2A]/60">
-                简历与照片存于境内数据中心，注销即删。
+                简历与投递记录随账号保存，注销即删。
               </p>
             </div>
           </div>
@@ -590,6 +590,9 @@ function Footer() {
         <p className="text-sm font-semibold text-white/80">AI 简历编辑器 · 为中文求职者制作</p>
         <p>ICP 备案号：预留位 · 公安备案号：预留位</p>
         <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          <Link href="/terms" className="underline-offset-2 hover:text-white hover:underline">
+            服务条款
+          </Link>
           <Link href="/privacy" className="underline-offset-2 hover:text-white hover:underline">
             隐私政策
           </Link>
