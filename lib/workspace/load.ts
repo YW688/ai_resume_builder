@@ -15,7 +15,7 @@ import {
   users,
 } from "@/drizzle/schema";
 import type { AuthSessionUser } from "@/lib/auth/server";
-import { getSessionUser } from "@/lib/auth/server";
+import { getSessionUser } from "@/lib/auth/session";
 import { initialWorkspace } from "@/lib/mock/data";
 import type {
   AccentId,
@@ -46,6 +46,13 @@ function isoOrUndefined(value: Date | null | undefined): string | undefined {
   return value ? value.toISOString() : undefined;
 }
 
+/** 照片在浏览器 / PDF 里可访问的公开地址（未配置对象存储时返回 undefined）。 */
+function photoPublicUrl(photoKey: string | null): string | undefined {
+  const base = process.env.NEON_STORAGE_PUBLIC_URL;
+  if (!photoKey || !base) return undefined;
+  return `${base.replace(/\/$/, "")}/${photoKey}`;
+}
+
 type UserRow = typeof users.$inferSelect;
 
 async function getOrCreateUser(
@@ -70,30 +77,38 @@ async function getOrCreateUser(
   const authUserExists = authUserResult.rows.length > 0;
   if (!authUserExists) return null;
 
-  await db
+  const insertedRows = await db
     .insert(users)
     .values({
       id: userId,
       email: session?.email ?? "",
       name: session?.name ?? "",
     })
-    .onConflictDoNothing();
+    .onConflictDoNothing()
+    .returning();
 
-  const created = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
+  // 并发首登录时另一请求可能已插入：只有拿不到 returning 时才回查一次。
+  const created =
+    insertedRows[0] ??
+    (
+      await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1)
+    )[0];
+  if (!created) return null;
 
   // 竞态保护：如果本次请求开始后账号被注销（Neon Auth 用户已删除），
   // 刚补建的 users 行要立刻撤掉，避免“注销后数据复活”。
+  // getSessionUser 已按请求缓存，这里不会额外发起网络请求。
   const sessionStillValid = await getSessionUser();
   if (!sessionStillValid) {
     await db.delete(users).where(eq(users.id, userId));
     return null;
   }
 
-  return created[0] ?? null;
+  return created;
 }
 
 /**
@@ -102,19 +117,23 @@ async function getOrCreateUser(
  */
 export async function loadWorkspace(userId: string): Promise<WorkspaceState> {
   const session = await getSessionUser();
-  let user = await getOrCreateUser(userId, session);
+  // users 行与 preferences 行互不依赖，并行走；首登录时 preferences 为空，
+  // 后续 seed 分支再补齐。
+  const [userRow, existingPreferences] = await Promise.all([
+    getOrCreateUser(userId, session),
+    db
+      .select()
+      .from(preferences)
+      .where(eq(preferences.userId, userId))
+      .limit(1),
+  ]);
+  let user = userRow;
   if (!user) throw new Error("UNAUTHORIZED: session 已失效，无法加载工作区");
-
-  const existingPreferences = await db
-    .select()
-    .from(preferences)
-    .where(eq(preferences.userId, userId))
-    .limit(1);
 
   if (!existingPreferences[0]) {
     await seedDemoWorkspace(userId);
-    // 种子只补空字段，真实用户填过的不覆盖
-    await db
+    // 种子只补空字段，真实用户填过的不覆盖；returning 省掉一次回查。
+    const updated = await db
       .update(users)
       .set({
         name: user.name || initialWorkspace.user.name,
@@ -143,14 +162,12 @@ export async function loadWorkspace(userId: string): Promise<WorkspaceState> {
         dailyCreditsUsed: user.dailyCreditsUsed,
         dailyCreditsDate: user.dailyCreditsDate,
       })
-      .where(eq(users.id, userId));
-
-    user = (
-      await db.select().from(users).where(eq(users.id, userId)).limit(1)
-    )[0]!;
+      .where(eq(users.id, userId))
+      .returning();
+    user = updated[0] ?? user;
   }
 
-  const [jobRows, resumeRows, applicationRows, notificationRows, orderRows, preferenceRows] =
+  const [jobRows, resumeRows, applicationRows, notificationRows, orderRows, preferenceRows, credits] =
     await Promise.all([
       db.select().from(jobs).where(eq(jobs.userId, userId)).orderBy(desc(jobs.savedAt)),
       db
@@ -170,6 +187,8 @@ export async function loadWorkspace(userId: string): Promise<WorkspaceState> {
         .orderBy(desc(notifications.at)),
       db.select().from(orders).where(eq(orders.userId, userId)).orderBy(desc(orders.at)),
       db.select().from(preferences).where(eq(preferences.userId, userId)).limit(1),
+      // 点数状态（顺带完成跨天免费额度重置、过期余额清零）与上面 6 个查询并行。
+      getCreditsState(userId),
     ]);
 
   const resumeIds = resumeRows.map((row) => row.id);
@@ -236,6 +255,7 @@ export async function loadWorkspace(userId: string): Promise<WorkspaceState> {
       updatedAt: iso(row.updatedAt),
       createdAt: iso(row.createdAt),
       photoInitials: row.fullName ? row.fullName.slice(0, 1) : undefined,
+      photoUrl: photoPublicUrl(row.photoKey),
     };
   });
 
@@ -278,8 +298,7 @@ export async function loadWorkspace(userId: string): Promise<WorkspaceState> {
     })),
   };
 
-  // 点数状态（顺带完成跨天免费额度重置、过期余额清零）。
-  const credits: CreditsState = await getCreditsState(userId);
+  // 点数状态已在上面的 Promise.all 中并行读取，这里直接使用。
 
   const preference = preferenceRows[0];
   const preferenceState: Preferences = {

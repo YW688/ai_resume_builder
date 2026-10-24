@@ -62,6 +62,6 @@ npm run lint
 ## 已知边界（演示版有意为之）
 
 - AI 改写 / JD 分析为 700–900ms 的本地 mock，不调用任何模型；结果可「重新生成」并在应用前预览。
-- 导出 PDF 走浏览器打印（`window.print()`，打印对话框选择「另存为 PDF」），服务端 PDF 路由未接入。
+- 导出 PDF 走服务端 Playwright 渲染（`/api/resumes/[resumeId]/pdf`，与右侧 A4 预览共用 `components/resume/a4.css`），下载的是简历文档本身，不经过浏览器打印/插件层。
 - 续购 / 注销均为演示流程，不会产生真实支付或删除真实账号。
-- 照片仅本地 FileReader 预览，不持久化、不上传；A4 中使用姓名首字母占位。
+- 照片可在当前编辑会话内本地预览并随 PDF 导出（data URL，不落盘）；配置 Neon Storage 后才会保存到账号。

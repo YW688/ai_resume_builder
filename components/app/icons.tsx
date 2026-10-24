@@ -61,6 +61,8 @@ export type IconName =
   | "sparkles"
   | "fileText"
   | "sliders"
+  | "panelLeft"
+  | "panelRight"
   | "chevronUp";
 
 export type IconProps = {
@@ -375,6 +377,18 @@ const ICON_PATHS: Record<IconName, ReactNode> = {
     <>
       <circle cx="12" cy="12" r="8" />
       <path d="m8.2 12.2 2.7 2.7 4.9-5.3" />
+    </>
+  ),
+  panelLeft: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <path d="M9.5 4.5v15" />
+    </>
+  ),
+  panelRight: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <path d="M14.5 4.5v15" />
     </>
   ),
   sliders: (

@@ -1,0 +1,342 @@
+/* ==========================================================================
+   A4 简历纸面 —— 预览 / 缩略图 / 服务端 PDF 共用同一套规则。
+   - app/app-ui.css 通过 @import 引入（产品端）；
+   - lib/pdf.ts 在服务端读取本文件内联到 Playwright 页面（导出 PDF）。
+   改这里会同时影响预览与导出，不要再在别处复制一份。
+   ========================================================================== */
+
+.a4-thumb {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--ui-border);
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: var(--ui-shadow-paper);
+  flex: none;
+}
+
+.a4-thumb-inner {
+  transform-origin: top left;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.a4-page {
+  --a4-ink: #111827;
+  --a4-muted: #4b5563;
+  --a4-faint: #6b7280;
+  --a4-line: #d7dde6;
+  width: 794px;
+  height: 1123px;
+  padding: 64px 68px 60px;
+  background: #fff;
+  color: var(--a4-ink);
+  font-family: var(--ui-font);
+  font-size: 13px;
+  line-height: 1.7;
+  overflow: hidden;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+.a4-page * {
+  box-sizing: border-box;
+}
+
+.a4-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.a4-name {
+  font-size: 36px;
+  line-height: 1.06;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--a4-ink);
+}
+
+.a4-role {
+  margin-top: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--a4-muted);
+  letter-spacing: 0.01em;
+}
+
+.a4-contact {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 11.5px;
+  color: var(--a4-faint);
+  letter-spacing: 0.01em;
+}
+
+.a4-contact-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.a4-contact svg {
+  flex: none;
+}
+
+.a4-photo {
+  width: 74px;
+  height: 96px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e3e8ef;
+  border-radius: 3px;
+  background: #f3f6fa;
+  color: #64748b;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+}
+
+.a4-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.a4-rule {
+  height: 3px;
+  width: 32px;
+  margin: 16px 0 0;
+  background: var(--a4-accent, #1a6bd6);
+  border-radius: 2px;
+}
+
+.a4-section {
+  margin-top: 24px;
+}
+
+.a4-section-title {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  color: var(--a4-ink);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--a4-line);
+}
+
+.a4-exp {
+  margin-top: 15px;
+}
+
+.a4-exp:first-of-type {
+  margin-top: 12px;
+}
+
+.a4-exp-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.a4-exp-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--a4-ink);
+  letter-spacing: -0.005em;
+}
+
+.a4-exp-company {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--a4-muted);
+}
+
+.a4-exp-date {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--a4-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.a4-bullets {
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13.5px;
+  line-height: 1.78;
+  color: #1f2937;
+}
+
+.a4-bullets li {
+  position: relative;
+  padding-left: 15px;
+  margin-top: 3px;
+}
+
+.a4-bullets li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0.66em;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #9aa4b2;
+}
+
+.a4-summary {
+  margin-top: 10px;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: #1f2937;
+}
+
+.a4-skills {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #1f2937;
+}
+
+.a4-skill {
+  display: inline;
+}
+
+.a4-skill + .a4-skill::before {
+  content: "·";
+  margin: 0 7px;
+  color: #9aa4b2;
+}
+
+.a4-kw {
+  background: var(--a4-kw, var(--ui-sun));
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+/* -------------------------------- 双栏模板 -------------------------------- */
+
+.a4-page--split {
+  padding: 0;
+  display: grid;
+  grid-template-columns: 238px minmax(0, 1fr);
+  height: 1123px;
+}
+
+.a4-side {
+  padding: 52px 26px;
+  background: #f5f8fc;
+  border-right: 1px solid #e6ebf2;
+}
+
+.a4-side .a4-name {
+  font-size: 27px;
+}
+
+.a4-side .a4-role {
+  font-size: 12.5px;
+}
+
+.a4-side .a4-contact {
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.a4-side .a4-photo {
+  width: 64px;
+  height: 82px;
+  margin-bottom: 16px;
+}
+
+.a4-main {
+  padding: 52px 40px;
+}
+
+.a4-side .a4-section {
+  margin-top: 22px;
+}
+
+.a4-side .a4-section-title {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+}
+
+.a4-side .a4-bullets {
+  font-size: 12px;
+}
+
+/* 窄侧栏里日期换行到标题下面，避免「华东师范大学」被挤成两行 */
+.a4-side .a4-exp-head {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.a4-side .a4-exp-date {
+  margin-top: 1px;
+}
+
+.a4-side .a4-exp-title {
+  font-size: 13px;
+  word-break: break-word;
+}
+
+/* -------------------------------- 紧凑模板 -------------------------------- */
+
+.a4-page--compact {
+  padding: 44px 52px;
+  font-size: 12.5px;
+}
+
+.a4-page--compact .a4-name {
+  font-size: 29px;
+}
+
+.a4-page--compact .a4-section {
+  margin-top: 18px;
+}
+
+.a4-page--compact .a4-exp {
+  margin-top: 11px;
+}
+
+.a4-page--compact .a4-bullets {
+  line-height: 1.62;
+}
+
+.a4-page--compact .a4-summary {
+  line-height: 1.7;
+}
+
+.a4-page.watermark::after {
+  content: "示例";
+  position: absolute;
+  right: 22px;
+  bottom: 18px;
+  font-size: 9px;
+  color: #aab4c4;
+  letter-spacing: 0.12em;
+}
+
+/* ------------------------- 服务端 PDF 专用覆盖 --------------------------- */
+/* 由 lib/pdf.ts 内联，宽度按真实 A4 尺寸而不是 CSS 像素。 */
+.a4-page--pdf {
+  width: 210mm;
+  height: 297mm;
+  box-shadow: none;
+  border: 0;
+}

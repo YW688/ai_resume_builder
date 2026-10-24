@@ -10,6 +10,7 @@ import { CreditIcon } from "@/components/credits/CreditIcon";
 import { useWorkspace } from "@/lib/mock/store";
 import { authClient } from "@/lib/auth/client";
 import { formatRelative, unreadNotifications } from "@/lib/mock/compute";
+import { readJsonPref, writeJsonPref } from "@/lib/ui/prefs";
 import "@/components/credits/credits.css";
 
 const NAV: { href: string; label: string; icon: IconName }[] = [
@@ -89,6 +90,8 @@ function NavLinks({
           href={item.href}
           className={`nav-item${isActive(item.href) ? " is-active" : ""}`}
           aria-current={isActive(item.href) ? "page" : undefined}
+          aria-label={item.label}
+          title={item.label}
           onClick={onNavigate}
         >
           <Icon name={item.icon} size={16} className="nav-icon" />
@@ -249,6 +252,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { state, markAllNotificationsRead, markNotificationRead } = useWorkspace();
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const saved = readJsonPref<boolean>("shell.sidebar.collapsed.v1", false);
+    setSidebarCollapsed(Boolean(saved));
+  }, []);
+
+  function toggleSidebar() {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      writeJsonPref("shell.sidebar.collapsed.v1", next);
+      return next;
+    });
+  }
   const [notifOpen, setNotifOpen] = useState(false);
   const [cmdkOpen, setCmdkOpen] = useState(false);
   const [cmdkQuery, setCmdkQuery] = useState("");
@@ -413,8 +430,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [filtered]);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${sidebarCollapsed ? " is-sidebar-collapsed" : ""}`}>
       <aside className="app-sidebar">
+        <div className="app-brand-row">
         <Link href="/dashboard" className="app-brand" aria-label="简历编辑器工作台">
           <span className="app-brand-mark">
             <ProductMark />
@@ -426,6 +444,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <span className="app-brand-sub">AI 求职工作台</span>
           </span>
         </Link>
+        <IconBtn
+          className="app-sidebar-toggle"
+          label={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
+          icon="panelLeft"
+          size={15}
+          onClick={toggleSidebar}
+        />
+        </div>
 
         <div className="app-scope">
           <Icon name="briefcase" size={14} />

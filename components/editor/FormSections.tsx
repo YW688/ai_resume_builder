@@ -7,6 +7,7 @@ import { Icon } from "@/components/app/icons";
 import { CREDIT_FEATURES, type CreditsState } from "@/lib/credits/catalog";
 import type { Education, Experience, Resume, ToastInput } from "@/lib/mock/types";
 import type { RewriteTarget } from "./RewriteDialog";
+import { useSectionCollapse } from "./sectionCollapse";
 
 export type DraftUpdate = (patch: Partial<Resume>) => void;
 
@@ -22,16 +23,21 @@ function SectionCard({
   sub,
   actions,
   children,
+  defaultCollapsed = false,
 }: {
   id: string;
   title: string;
   sub?: string;
   actions?: ReactNode;
   children: ReactNode;
+  defaultCollapsed?: boolean;
 }) {
+  const { collapsed, toggle } = useSectionCollapse(id, defaultCollapsed);
+  const bodyId = `ed-card-body-${id}`;
+
   return (
     <section
-      className="ed-card"
+      className={`ed-card${collapsed ? " is-collapsed" : ""}`}
       id={`ed-section-${id}`}
       data-section={id}
       aria-labelledby={`ed-title-${id}`}
@@ -39,13 +45,33 @@ function SectionCard({
       <div className="ed-card-head">
         <div className="ed-card-head-main">
           <h2 className="ed-card-title" id={`ed-title-${id}`}>
-            {title}
+            <button
+              type="button"
+              className="ed-card-toggle"
+              aria-expanded={!collapsed}
+              aria-controls={bodyId}
+              onClick={toggle}
+            >
+              <span className="ed-card-toggle-text">{title}</span>
+              <Icon
+                name="chevronDown"
+                size={15}
+                className="ed-card-chevron"
+              />
+            </button>
           </h2>
           {sub ? <p className="ed-card-sub">{sub}</p> : null}
         </div>
         {actions ? <div className="ed-card-actions">{actions}</div> : null}
       </div>
-      <div className="ed-card-body">{children}</div>
+      <div
+        className="ed-card-collapse"
+        id={bodyId}
+        data-open={!collapsed}
+        inert={collapsed || undefined}
+      >
+        <div className="ed-card-body">{children}</div>
+      </div>
     </section>
   );
 }
@@ -759,12 +785,16 @@ export function PhotoSection({
   resume,
   update,
   toast,
+  photoPreview,
+  onPhotoPreviewChange,
 }: {
   resume: Resume;
   update: DraftUpdate;
   toast: (input: ToastInput) => void;
+  /** 本地选择的照片（data URL），由编辑器统一持有，A4 预览与 PDF 导出共用。 */
+  photoPreview: string | null;
+  onPhotoPreviewChange: (next: string | null) => void;
 }) {
-  const [preview, setPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const initial = (resume.fullName.trim() || "林").slice(0, 1);
 
@@ -788,10 +818,10 @@ export function PhotoSection({
     }
     const reader = new FileReader();
     reader.onload = () => {
-      setPreview(typeof reader.result === "string" ? reader.result : null);
+      onPhotoPreviewChange(typeof reader.result === "string" ? reader.result : null);
       toast({
         title: "已载入本地预览",
-        description: "照片只保存在当前页面，不会上传服务器。",
+        description: "照片只会加入本次 A4 预览与导出，不会上传服务器。",
         tone: "positive",
       });
     };
@@ -802,7 +832,7 @@ export function PhotoSection({
   }
 
   function removePhoto() {
-    setPreview(null);
+    onPhotoPreviewChange(null);
     if (resume.photoInitials) update({ photoInitials: undefined });
     if (fileRef.current) fileRef.current.value = "";
   }
@@ -811,15 +841,15 @@ export function PhotoSection({
     <SectionCard
       id="photo"
       title="照片"
-      sub="演示环境不上传照片：本地预览只在本页展示，导出 A4 时用首字母头像占位。"
+      sub="选择照片后会实时出现在右侧 A4 预览，并随「导出 PDF」一起导出；当前未配置对象存储，照片不会保存到账号。"
     >
       <div className="ed-photo-row">
-        {preview ? (
+        {photoPreview ? (
           <div
             className="ed-photo-preview"
             role="img"
             aria-label="本地照片预览"
-            style={{ backgroundImage: `url(${preview})` }}
+            style={{ backgroundImage: `url(${photoPreview})` }}
           />
         ) : (
           <div className="ed-photo-placeholder" aria-hidden="true">
@@ -845,7 +875,7 @@ export function PhotoSection({
               variant="ghost"
               size="sm"
               icon="trash"
-              disabled={!preview && !resume.photoInitials}
+              disabled={!photoPreview && !resume.photoInitials}
               onClick={removePhoto}
             >
               移除
@@ -894,7 +924,7 @@ export function PhotoSection({
             )}
           </div>
           <p className="t-11 t-faint">
-            上传的照片仅在浏览器内预览（FileReader），刷新页面后清空，不会保存或上传。
+            照片只存在当前编辑会话（FileReader，不会上传服务器）；刷新页面后需重新选择。配置 Neon Storage 后即可保存到账号。
           </p>
         </div>
       </div>

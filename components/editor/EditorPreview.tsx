@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { A4Page } from "@/components/app/A4Page";
 import { Icon } from "@/components/app/icons";
 import { IconBtn, Toggle } from "@/components/app/ui";
 import { templateName } from "@/lib/mock/templates";
+import { HIGHLIGHT_COLORS } from "./highlightColors";
 import type { Job, Resume } from "@/lib/mock/types";
 
 const A4_WIDTH = 794;
@@ -21,8 +22,13 @@ const ZOOM_STEP = 10;
 export function EditorPreview({
   resume,
   job,
+  photoUrl,
   keywords,
   highlight,
+  highlightColor,
+  highlightColorId,
+  onHighlightColorChange,
+  onCollapse,
   zoom,
   onZoomChange,
   onToggleHighlight,
@@ -31,8 +37,15 @@ export function EditorPreview({
 }: {
   resume: Resume;
   job?: Job;
+  photoUrl?: string;
   keywords: string[];
   highlight: boolean;
+  /** 当前高亮底色（CSS 颜色值）。 */
+  highlightColor: string;
+  highlightColorId: string;
+  onHighlightColorChange: (id: string) => void;
+  /** 收起预览栏（桌面端）。 */
+  onCollapse?: () => void;
   zoom: number;
   onZoomChange: (zoom: number) => void;
   onToggleHighlight: (next: boolean) => void;
@@ -100,7 +113,28 @@ export function EditorPreview({
           <span>关键词高亮</span>
         </span>
 
-        <IconBtn label="打印简历" icon="printer" size={15} onClick={onPrint} />
+        {highlight ? (
+          <span className="ed-kw-colors" role="group" aria-label="关键词高亮颜色">
+            <span className="ed-kw-colors-label" aria-hidden="true">颜色</span>
+            {HIGHLIGHT_COLORS.map((color) => (
+              <button
+                key={color.id}
+                type="button"
+                className={`ed-kw-swatch${highlightColorId === color.id ? " is-active" : ""}`}
+                style={{ "--swatch": color.value } as CSSProperties}
+                aria-label={`高亮颜色：${color.label}`}
+                aria-pressed={highlightColorId === color.id}
+                title={color.label}
+                onClick={() => onHighlightColorChange(color.id)}
+              />
+            ))}
+          </span>
+        ) : null}
+
+        {onCollapse ? (
+          <IconBtn label="收起预览" icon="panelRight" size={15} onClick={onCollapse} />
+        ) : null}
+        <IconBtn label="打开打印预览" icon="printer" size={15} onClick={onPrint} />
       </div>
 
       <div className="ed-preview-stage" ref={stageRef}>
@@ -118,7 +152,9 @@ export function EditorPreview({
           >
             <A4Page
               resume={resume}
+              photoUrl={photoUrl}
               highlight={highlight ? keywords : undefined}
+              highlightColor={highlightColor}
               job={job?.title}
             />
           </div>

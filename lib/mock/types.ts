@@ -45,6 +45,8 @@ export type Resume = {
   updatedAt: string; // ISO
   createdAt: string; // ISO
   photoInitials?: string; // 演示头像：首字母，不上传真实照片
+  /** 真实照片的公开地址（Neon Storage）；未配置存储或未上传时为空。 */
+  photoUrl?: string;
 };
 
 export type Job = {

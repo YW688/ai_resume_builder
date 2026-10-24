@@ -17,7 +17,10 @@ const ACCENT_COLORS: Record<AccentId, string> = {
 
 const NAME_PLACEHOLDER = "未命名";
 
-type PageStyle = CSSProperties & { "--a4-accent": string };
+type PageStyle = CSSProperties & {
+  "--a4-accent": string;
+  "--a4-kw"?: string;
+};
 
 function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");
@@ -78,7 +81,7 @@ function ContactList({ resume }: { resume: Resume }) {
   return (
     <div className="a4-contact">
       {items.map((item) => (
-        <span key={item.icon} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+        <span key={item.icon} className="a4-contact-item">
           <Icon name={item.icon} size={11} />
           {item.value}
         </span>
@@ -206,16 +209,33 @@ export type A4PageProps = {
   highlight?: string[];
   /** 目标岗位名，显示在姓名下方。 */
   job?: string;
+  /** 真实照片地址（data URL 或存储 URL）；缺省时退回 `resume.photoUrl` / 首字母头像。 */
+  photoUrl?: string | null;
+  /** 关键词高亮底色（默认姜黄）。 */
+  highlightColor?: string;
   className?: string;
 };
 
-export function A4Page({ resume, variant, accent, highlight, job, className }: A4PageProps) {
+export function A4Page({
+  resume,
+  variant,
+  accent,
+  highlight,
+  job,
+  photoUrl,
+  highlightColor,
+  className,
+}: A4PageProps) {
   const template = variant ?? resume.templateId;
   const tone = accent ?? resume.accent;
-  const style: PageStyle = { "--a4-accent": ACCENT_COLORS[tone] ?? ACCENT_COLORS.blue };
+  const style: PageStyle = {
+    "--a4-accent": ACCENT_COLORS[tone] ?? ACCENT_COLORS.blue,
+    ...(highlightColor ? { "--a4-kw": highlightColor } : {}),
+  };
   const name = nonEmpty(resume.fullName) || NAME_PLACEHOLDER;
   const jobTitle = nonEmpty(job);
-  const photo = nonEmpty(resume.photoInitials);
+  const photoInitials = nonEmpty(resume.photoInitials);
+  const photoSrc = nonEmpty(photoUrl) || nonEmpty(resume.photoUrl);
   const experiences = resume.experiences ?? [];
   const educations = resume.educations ?? [];
   const skills = resume.skills ?? [];
@@ -232,9 +252,9 @@ export function A4Page({ resume, variant, accent, highlight, job, className }: A
     return (
       <article className={classes} style={style} aria-label="A4 简历预览">
         <aside className="a4-side">
-          {photo ? (
+          {photoSrc || photoInitials ? (
             <div className="a4-photo" style={{ marginBottom: 14 }}>
-              {photo}
+              {photoSrc ? <img className="a4-photo-img" src={photoSrc} alt="" /> : photoInitials}
             </div>
           ) : null}
           <div className="a4-name">{name}</div>
@@ -260,7 +280,11 @@ export function A4Page({ resume, variant, accent, highlight, job, className }: A
           {jobTitle ? <div className="a4-role">{jobTitle}</div> : null}
           <ContactList resume={resume} />
         </div>
-        {photo ? <div className="a4-photo">{photo}</div> : null}
+        {photoSrc || photoInitials ? (
+          <div className="a4-photo">
+            {photoSrc ? <img className="a4-photo-img" src={photoSrc} alt="" /> : photoInitials}
+          </div>
+        ) : null}
       </header>
       <div className="a4-rule" />
       <SummarySection text={resume.summary} keywords={highlight} />

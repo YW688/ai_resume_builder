@@ -1,3 +1,5 @@
+@import "../components/resume/a4.css";
+
 /* ==========================================================================
    产品工作台 UI 基础层（framed-sheet · light）
    唯一 token 与组件类来源。页面用 Tailwind 只做布局（flex/grid/间距），
@@ -1809,251 +1811,6 @@ button.kw-missing:hover {
   to { opacity: 1; transform: none; }
 }
 
-/* ------------------------------- A4 纸面 -------------------------------- */
-
-.a4-thumb {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--ui-border);
-  border-radius: 2px;
-  background: #fff;
-  box-shadow: var(--ui-shadow-paper);
-  flex: none;
-}
-
-.a4-thumb-inner {
-  transform-origin: top left;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.a4-page {
-  width: 794px;
-  height: 1123px;
-  padding: 56px 60px;
-  background: #fff;
-  color: #0e1b2a;
-  font-family: var(--ui-font);
-  font-size: 13px;
-  line-height: 1.68;
-  overflow: hidden;
-  position: relative;
-}
-
-.a4-page * {
-  box-sizing: border-box;
-}
-
-.a4-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-.a4-name {
-  font-size: 27px;
-  line-height: 1.15;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.a4-role {
-  margin-top: 4px;
-  font-size: 12.5px;
-  color: #52617a;
-}
-
-.a4-contact {
-  margin-top: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  font-size: 12px;
-  color: #5b687c;
-}
-
-.a4-photo {
-  width: 66px;
-  height: 84px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  border-radius: 4px;
-  background: #edf2f8;
-  color: #52617a;
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.a4-rule {
-  height: 2px;
-  width: 44px;
-  margin: 14px 0 0;
-  background: var(--a4-accent, #1a6bd6);
-  border-radius: 2px;
-}
-
-.a4-section {
-  margin-top: 18px;
-}
-
-.a4-section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--a4-accent, #1a6bd6);
-}
-
-.a4-section-title::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: #e6ebf2;
-}
-
-.a4-exp {
-  margin-top: 10px;
-}
-
-.a4-exp:first-of-type {
-  margin-top: 8px;
-}
-
-.a4-exp-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.a4-exp-title {
-  font-size: 13px;
-  font-weight: 650;
-  color: #16243a;
-}
-
-.a4-exp-company {
-  font-size: 12px;
-  color: #52617a;
-}
-
-.a4-exp-date {
-  flex: none;
-  font-size: 11.5px;
-  color: #5b687c;
-  font-variant-numeric: tabular-nums;
-}
-
-.a4-bullets {
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 13px;
-  line-height: 1.7;
-  color: #33415a;
-}
-
-.a4-bullets li {
-  position: relative;
-  padding-left: 10px;
-  margin-top: 1px;
-}
-
-.a4-bullets li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.72em;
-  width: 3px;
-  height: 3px;
-  border-radius: 999px;
-  background: #9aa6b8;
-}
-
-.a4-summary {
-  margin-top: 6px;
-  font-size: 13px;
-  line-height: 1.75;
-  color: #33415a;
-}
-
-.a4-skills {
-  margin-top: 6px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.a4-skill {
-  padding: 1px 7px;
-  border-radius: 3px;
-  background: #f2f5f9;
-  font-size: 12px;
-  color: #33415a;
-}
-
-.a4-kw {
-  background: var(--ui-sun);
-  color: inherit;
-  padding: 0 1px;
-  border-radius: 2px;
-}
-
-.a4-page--split {
-  padding: 0;
-  display: grid;
-  grid-template-columns: 226px minmax(0, 1fr);
-  height: 1123px;
-}
-
-.a4-side {
-  padding: 44px 24px;
-  background: #f5f8fc;
-  border-right: 1px solid #e6ebf2;
-}
-
-.a4-side .a4-name {
-  font-size: 24px;
-}
-
-.a4-main {
-  padding: 44px 34px;
-}
-
-.a4-side .a4-section {
-  margin-top: 16px;
-}
-
-.a4-side .a4-contact {
-  flex-direction: column;
-  gap: 3px;
-}
-
-.a4-page--compact {
-  padding: 42px 52px;
-  font-size: 12.5px;
-}
-
-.a4-page--compact .a4-name { font-size: 23px; }
-.a4-page--compact .a4-section { margin-top: 13px; }
-.a4-page--compact .a4-exp { margin-top: 7px; }
-.a4-page--compact .a4-bullets { line-height: 1.6; }
-
-.a4-page.watermark::after {
-  content: "示例";
-  position: absolute;
-  right: 22px;
-  bottom: 18px;
-  font-size: 9px;
-  color: #aab4c4;
-  letter-spacing: 0.12em;
-}
-
 /* ------------------------------ 通用工具类 ------------------------------- */
 
 .t-accent { color: var(--ui-accent); }
@@ -2466,5 +2223,102 @@ button.kw-missing:hover {
   }
   .health-thumb .a4-thumb-inner {
     transform: scale(0.188) !important;
+  }
+}
+
+/* --------------------------- 工作台侧边栏收起（桌面） --------------------------- */
+
+.app-shell {
+  transition: grid-template-columns 220ms var(--ui-ease);
+}
+
+.app-shell.is-sidebar-collapsed {
+  --ui-sidebar: 72px;
+}
+
+.app-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 0 2px;
+}
+
+.app-brand-row .app-brand {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.app-sidebar-toggle {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  color: var(--ui-muted);
+  opacity: 0.75;
+}
+
+.app-sidebar-toggle:hover {
+  opacity: 1;
+  background: var(--ui-chrome-2);
+  color: var(--ui-text);
+}
+
+.app-shell.is-sidebar-collapsed .app-sidebar {
+  padding: 14px 8px 12px;
+}
+
+.app-shell.is-sidebar-collapsed .app-brand-row {
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 0;
+}
+
+.app-shell.is-sidebar-collapsed .app-brand {
+  flex: none;
+  justify-content: center;
+  padding: 0;
+}
+
+.app-shell.is-sidebar-collapsed .app-brand-text,
+.app-shell.is-sidebar-collapsed .app-scope,
+.app-shell.is-sidebar-collapsed .nav-label,
+.app-shell.is-sidebar-collapsed .nav-item > span,
+.app-shell.is-sidebar-collapsed .nav-count,
+.app-shell.is-sidebar-collapsed .credit-mini,
+.app-shell.is-sidebar-collapsed .user-row-text,
+.app-shell.is-sidebar-collapsed .user-row .nav-icon,
+.app-shell.is-sidebar-collapsed .demo-note,
+.app-shell.is-sidebar-collapsed .plan-link {
+  display: none;
+}
+
+.app-shell.is-sidebar-collapsed .nav-item {
+  justify-content: center;
+  width: 44px;
+  margin-inline: auto;
+  padding: 0;
+}
+
+.app-shell.is-sidebar-collapsed .app-sidebar-foot {
+  align-items: center;
+}
+
+.app-shell.is-sidebar-collapsed .user-row {
+  justify-content: center;
+  width: 44px;
+  padding: 0;
+}
+
+@media (max-width: 900px) {
+  .app-brand-row {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell {
+    transition: none;
   }
 }

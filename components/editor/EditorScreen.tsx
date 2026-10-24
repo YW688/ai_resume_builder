@@ -41,6 +41,14 @@ import {
 import { EditorPreview } from "./EditorPreview";
 import { RewriteDialog, type RewriteTarget } from "./RewriteDialog";
 import { TemplateDialog } from "./TemplateDialog";
+import { PrintPreviewDialog } from "./PrintPreviewDialog";
+import { useEditorLayout } from "./useEditorLayout";
+import { useAllSectionsCollapsed } from "./sectionCollapse";
+import {
+  DEFAULT_HIGHLIGHT_COLOR_ID,
+  highlightColorValue,
+} from "./highlightColors";
+import { readStringPref, writeStringPref } from "@/lib/ui/prefs";
 
 type SectionId = "basic" | "summary" | "experience" | "education" | "skills" | "photo";
 
@@ -52,6 +60,9 @@ const SECTIONS: { id: SectionId; label: string }[] = [
   { id: "skills", label: "技能" },
   { id: "photo", label: "照片" },
 ];
+
+const SECTION_IDS = SECTIONS.map((section) => section.id);
+const HIGHLIGHT_COLOR_KEY = "editor.highlight-color.v1";
 
 const SAVE_DELAY = 600;
 const FALLBACK_SETTLE = 350;
@@ -148,13 +159,19 @@ export function EditorScreen() {
   const [skillsPolishing, setSkillsPolishing] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [highlightColorId, setHighlightColorId] = useState(
+    DEFAULT_HIGHLIGHT_COLOR_ID,
+  );
+  /** 本地选择的照片（data URL）：仅当前编辑会话可见，导出 PDF 时一并带上。 */
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLElement | null>(null);
   const spySuppressedRef = useRef(false);
   const spyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fallbackNotifiedRef = useRef(false);
-  const autoPrintRef = useRef(false);
-  const exportRef = useRef<() => void>(() => {});
 
   /* ------------------------------ 与 store 同步 ----------------------------- */
 
@@ -163,6 +180,7 @@ export function EditorScreen() {
       draftRef.current = null;
       dirtyRef.current = false;
       setDraft(null);
+      setPhotoPreview(null);
       return;
     }
     const current = draftRef.current;
@@ -175,6 +193,7 @@ export function EditorScreen() {
     draftRef.current = next;
     lastSyncedAtRef.current = resolved.updatedAt;
     dirtyRef.current = false;
+    if (!isSameResume) setPhotoPreview(null);
     setDraft(next);
     setSaveState("saved");
     setSavedClock(formatTime(resolved.updatedAt));
@@ -225,6 +244,30 @@ export function EditorScreen() {
   const skillsCost = CREDIT_FEATURES.skills_polish.cost;
   const aiAvailable = state.credits.dailyRemaining + state.credits.balance;
   const aiCreditsLine = `当前可用 ${aiAvailable} 点（免费 ${state.credits.dailyRemaining} + 余额 ${state.credits.balance}）`;
+  const {
+    layout,
+    desktop,
+    style: layoutStyle,
+    startResize,
+    onSeparatorKeyDown,
+    resetWidth,
+    setRailCollapsed,
+    setPreviewCollapsed,
+  } = useEditorLayout(rootRef);
+  const railCollapsed = desktop && layout.railCollapsed;
+  const previewCollapsed = desktop && layout.previewCollapsed;
+  const { allCollapsed, toggleAll } = useAllSectionsCollapsed(SECTION_IDS);
+
+  useEffect(() => {
+    setHighlightColorId(
+      readStringPref(HIGHLIGHT_COLOR_KEY, DEFAULT_HIGHLIGHT_COLOR_ID),
+    );
+  }, []);
+
+  function changeHighlightColor(id: string) {
+    setHighlightColorId(id);
+    writeStringPref(HIGHLIGHT_COLOR_KEY, id);
+  }
 
   const sectionDone = useMemo(() => {
     if (!draft) return null;
@@ -246,7 +289,7 @@ export function EditorScreen() {
         (item) => item.school.trim() && item.degree.trim() && item.major.trim(),
       ),
       skills: draft.skills.filter((item) => item.trim()).length >= 3,
-      photo: Boolean(draft.photoInitials),
+      photo: Boolean(draft.photoInitials) || Boolean(photoPreview),
     } satisfies Record<SectionId, boolean>;
   }, [draft]);
 
@@ -266,27 +309,84 @@ export function EditorScreen() {
 
   /* --------------------------------- 导出 --------------------------------- */
 
-  function handleExport() {
+  /**
+   * 导出 PDF：服务端 Playwright 渲染（与右侧预览同一套 A4 组件/CSS），
+   * 不再走 window.print —— 浏览器插件悬浮球、页面 chrome 都不会被带进 PDF。
+   */
+  function openPrintPreview() {
+    if (!draftRef.current) return;
     flushSave();
-    recordExport();
-    toast({
-      title: "已打开打印对话框",
-      description: "选择「另存为 PDF」，纸张 A4、边距设为无，即得到可投递的 PDF。",
-    });
-    setTimeout(() => window.print(), 80);
+    setPrintOpen(true);
   }
 
-  useEffect(() => {
-    exportRef.current = handleExport;
-  });
+  async function handleExport() {
+    const snapshot = draftRef.current;
+    if (!snapshot || exporting) return;
+    flushSave();
+    setExporting(true);
+    try {
+      const response = await fetch(`/api/resumes/${snapshot.id}/pdf`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          resume: {
+            ...snapshot,
+            jobTitle: targetJob?.title ?? "",
+            // 显式传：undefined 会退回首字头像，空串才是「用户移除了头像」。
+            photoInitials: snapshot.photoInitials ?? "",
+          },
+          photoUrl: photoPreview ?? snapshot.photoUrl ?? null,
+        }),
+      });
 
+      if (!response.ok) {
+        let message = "导出失败，请稍后重试";
+        try {
+          const payload = (await response.json()) as { message?: string };
+          if (payload.message) message = payload.message;
+        } catch {
+          /* 非 JSON 错误体，保留默认文案 */
+        }
+        toast({ title: "PDF 导出失败", description: message, tone: "negative" });
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const fileName =
+        (snapshot.fullName || snapshot.title || "简历").replace(
+          /[\\/:*?"<>|]/g,
+          "",
+        ) || "简历";
+      link.href = url;
+      link.download = `${fileName}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      recordExport();
+      setPrintOpen(false);
+      toast({
+        title: "PDF 已导出",
+        description: "文件已开始下载；若没有出现，请检查浏览器下载设置。",
+        tone: "positive",
+      });
+    } catch {
+      toast({
+        title: "PDF 导出失败",
+        description: "无法连接导出服务，请稍后重试。",
+        tone: "negative",
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  // 从简历库带 ?print=1 进入时，草稿就绪后打开打印预览（不静默下载）。
   useEffect(() => {
-    if (!printRequested || !draft || autoPrintRef.current) return;
-    const timer = setTimeout(() => {
-      if (autoPrintRef.current) return;
-      autoPrintRef.current = true;
-      exportRef.current();
-    }, 500);
+    if (!printRequested || !draft) return;
+    const timer = setTimeout(() => setPrintOpen(true), 400);
     return () => clearTimeout(timer);
   }, [printRequested, draft]);
 
@@ -625,7 +725,11 @@ export function EditorScreen() {
   ));
 
   return (
-    <div className="editor-root">
+    <div
+      ref={rootRef}
+      style={layoutStyle}
+      className={`editor-root${railCollapsed ? " is-rail-collapsed" : ""}${previewCollapsed ? " is-preview-collapsed" : ""}`}
+    >
       <header className="ed-topbar">
         <Link className="ed-back" href="/dashboard" aria-label="返回工作台">
           <Icon name="arrowLeft" size={18} />
@@ -703,7 +807,7 @@ export function EditorScreen() {
             预览
           </Btn>
 
-          <Btn variant="primary" icon="download" onClick={handleExport}>
+          <Btn variant="primary" icon="printer" onClick={openPrintPreview}>
             导出 PDF
           </Btn>
         </div>
@@ -728,9 +832,30 @@ export function EditorScreen() {
       </div>
 
       <div className="ed-body">
-        <aside className="ed-rail" aria-label="段落导航">
+        <aside
+          className="ed-rail"
+          aria-label="段落导航"
+          inert={railCollapsed || undefined}
+          aria-hidden={railCollapsed || undefined}
+        >
           <div className="ed-rail-top">
-            <p className="ed-rail-label">简历内容</p>
+            <div className="ed-rail-head">
+              <p className="ed-rail-label">简历内容</p>
+              <div className="ed-rail-head-actions">
+                <IconBtn
+                  label={allCollapsed ? "展开全部内容" : "收起全部内容"}
+                  icon={allCollapsed ? "chevronDown" : "chevronUp"}
+                  size={14}
+                  onClick={toggleAll}
+                />
+                <IconBtn
+                  label="收起左侧导航"
+                  icon="panelLeft"
+                  size={14}
+                  onClick={() => setRailCollapsed(true)}
+                />
+              </div>
+            </div>
             <nav className="ed-nav">
               {SECTIONS.map((section) => {
                 const done = sectionDone?.[section.id] ?? false;
@@ -782,6 +907,18 @@ export function EditorScreen() {
             </div>
           </div>
         </aside>
+
+        {railCollapsed ? (
+          <button
+            type="button"
+            className="ed-restore ed-restore--rail"
+            aria-label="展开左侧导航"
+            title="展开左侧导航"
+            onClick={() => setRailCollapsed(false)}
+          >
+            <Icon name="panelLeft" size={15} />
+          </button>
+        ) : null}
 
         <main className="ed-main" ref={scrollRef}>
           <form
@@ -852,25 +989,85 @@ export function EditorScreen() {
               polishing={skillsPolishing}
               credits={state.credits}
             />
-            <PhotoSection resume={draft} update={patchDraft} toast={toast} />
+            <PhotoSection
+              resume={draft}
+              update={patchDraft}
+              toast={toast}
+              photoPreview={photoPreview}
+              onPhotoPreviewChange={setPhotoPreview}
+            />
             <p className="ed-form-foot">
               内容保存到你的 Neon 账号 · 编辑后 600ms 自动保存
             </p>
           </form>
         </main>
 
-        <aside className="ed-preview" aria-label="A4 实时预览">
+        {!railCollapsed ? (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="调整左侧导航宽度"
+            aria-controls="ed-rail-pane"
+            aria-valuenow={layout.railW}
+            aria-valuemin={180}
+            aria-valuemax={340}
+            tabIndex={0}
+            className="ed-splitter ed-splitter--rail"
+            onPointerDown={startResize("rail")}
+            onKeyDown={onSeparatorKeyDown("rail")}
+            onDoubleClick={() => resetWidth("rail")}
+          />
+        ) : null}
+
+        {!previewCollapsed ? (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="调整预览栏宽度"
+          aria-valuenow={layout.previewW}
+          aria-valuemin={340}
+          aria-valuemax={760}
+          tabIndex={0}
+          className="ed-splitter ed-splitter--preview"
+          onPointerDown={startResize("preview")}
+          onKeyDown={onSeparatorKeyDown("preview")}
+          onDoubleClick={() => resetWidth("preview")}
+        />
+        ) : null}
+
+        <aside
+          className="ed-preview"
+          aria-label="A4 实时预览"
+          inert={previewCollapsed || undefined}
+          aria-hidden={previewCollapsed || undefined}
+        >
           <EditorPreview
             resume={draft}
             job={targetJob}
+            photoUrl={photoPreview ?? draft.photoUrl ?? undefined}
             keywords={previewKeywords}
             highlight={highlight}
+            highlightColor={highlightColorValue(highlightColorId)}
+            highlightColorId={highlightColorId}
+            onHighlightColorChange={changeHighlightColor}
+            onCollapse={() => setPreviewCollapsed(true)}
             zoom={zoom}
             onZoomChange={setZoom}
             onToggleHighlight={setHighlight}
-            onPrint={handleExport}
+            onPrint={openPrintPreview}
           />
         </aside>
+        {previewCollapsed ? (
+          <button
+            type="button"
+            className="ed-restore ed-restore--preview"
+            aria-label="展开预览栏"
+            title="展开预览栏"
+            onClick={() => setPreviewCollapsed(false)}
+          >
+            <Icon name="panelRight" size={15} />
+          </button>
+        ) : null}
       </div>
 
       {previewOpen ? (
@@ -881,7 +1078,12 @@ export function EditorScreen() {
               <span className="truncate">预览 · {draft.title}</span>
             </span>
             <div className="row">
-              <Btn variant="secondary" size="sm" icon="printer" onClick={handleExport}>
+              <Btn
+                variant="secondary"
+                size="sm"
+                icon="printer"
+                onClick={openPrintPreview}
+              >
                 导出 PDF
               </Btn>
               <IconBtn
@@ -894,12 +1096,16 @@ export function EditorScreen() {
           <EditorPreview
             resume={draft}
             job={targetJob}
+            photoUrl={photoPreview ?? draft.photoUrl ?? undefined}
             keywords={previewKeywords}
             highlight={highlight}
+            highlightColor={highlightColorValue(highlightColorId)}
+            highlightColorId={highlightColorId}
+            onHighlightColorChange={changeHighlightColor}
             zoom={zoom}
             onZoomChange={setZoom}
             onToggleHighlight={setHighlight}
-            onPrint={handleExport}
+            onPrint={openPrintPreview}
             overlay
           />
         </div>
@@ -995,8 +1201,22 @@ export function EditorScreen() {
       />
 
       {/* 打印只输出这一张无缩放的 A4 页（样式见 app-ui.css 的 @media print） */}
+      <PrintPreviewDialog
+        open={printOpen}
+        onClose={() => setPrintOpen(false)}
+        resume={draft}
+        job={targetJob}
+        photoUrl={photoPreview ?? draft.photoUrl ?? undefined}
+        exporting={exporting}
+        onDownload={handleExport}
+      />
+
       <div className="print-only">
-        <A4Page resume={draft} job={targetJob?.title} />
+        <A4Page
+          resume={draft}
+          job={targetJob?.title}
+          photoUrl={photoPreview ?? draft.photoUrl ?? undefined}
+        />
       </div>
     </div>
   );

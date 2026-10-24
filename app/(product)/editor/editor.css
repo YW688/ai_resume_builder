@@ -1725,3 +1725,369 @@
     display: block !important;
   }
 }
+
+/* ==========================================================================
+   桌面端布局增强：可拖拽分栏 / 左右栏收起 / 内容卡片折叠 / 高亮色 / 打印预览
+   ========================================================================== */
+
+.ed-body {
+  position: relative;
+  transition: grid-template-columns 240ms var(--ui-ease);
+}
+
+.editor-root.is-rail-collapsed .ed-body {
+  grid-template-columns: 0 minmax(0, 1fr) var(--ed-preview-w);
+}
+
+.editor-root.is-preview-collapsed .ed-body {
+  grid-template-columns: var(--ed-rail-w) minmax(0, 1fr) 0;
+}
+
+.editor-root.is-rail-collapsed.is-preview-collapsed .ed-body {
+  grid-template-columns: 0 minmax(0, 1fr) 0;
+}
+
+body.ed-resizing .ed-body {
+  transition: none;
+}
+
+body.ed-resizing,
+body.ed-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+/* -------------------------------- 拖拽分隔条 ------------------------------- */
+
+.ed-splitter {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 11px;
+  z-index: 8;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.ed-splitter::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 1px;
+  background: var(--ui-accent);
+  opacity: 0;
+  transition: opacity 140ms var(--ui-ease);
+}
+
+.ed-splitter--rail {
+  left: var(--ed-rail-w);
+  transform: translateX(-5px);
+}
+
+.ed-splitter--preview {
+  right: var(--ed-preview-w);
+  transform: translateX(5px);
+}
+
+.ed-splitter:hover::after,
+.ed-splitter:focus-visible::after,
+body.ed-resizing .ed-splitter::after {
+  opacity: 1;
+}
+
+.ed-splitter:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ui-accent);
+  border-radius: 2px;
+}
+
+/* ------------------------------ 收起后的还原把手 ---------------------------- */
+
+.ed-restore {
+  position: absolute;
+  top: 10px;
+  z-index: 9;
+  width: 26px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+  background: var(--ui-surface);
+  color: var(--ui-muted);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(14, 27, 42, 0.08);
+  transition: background-color 140ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+
+.ed-restore:hover {
+  background: var(--ui-chrome-2);
+  color: var(--ui-text);
+}
+
+.ed-restore--rail {
+  left: 6px;
+}
+
+.ed-restore--preview {
+  right: 6px;
+}
+
+/* ------------------------------- 左栏头部工具 ------------------------------ */
+
+.ed-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 2px;
+}
+
+.ed-rail-head .ed-rail-label {
+  margin-bottom: 0;
+}
+
+.ed-rail-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.ed-rail-head-actions .btn-icon {
+  width: 26px;
+  height: 26px;
+  color: var(--ui-muted);
+}
+
+.ed-rail-head-actions .btn-icon:hover {
+  color: var(--ui-text);
+  background: var(--ui-chrome-2);
+}
+
+.ed-rail-top .ed-nav {
+  margin-top: 8px;
+}
+
+/* -------------------------------- 内容卡折叠 ------------------------------- */
+
+.ed-card-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 2px 4px 2px 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ed-card-toggle:hover .ed-card-chevron {
+  color: var(--ui-text);
+}
+
+.ed-card-chevron {
+  flex: none;
+  color: var(--ui-faint);
+  transition: transform 200ms var(--ui-ease), color 140ms var(--ui-ease);
+}
+
+.ed-card.is-collapsed .ed-card-chevron {
+  transform: rotate(-90deg);
+}
+
+.ed-card.is-collapsed .ed-card-head {
+  padding-bottom: 14px;
+}
+
+.ed-card-collapse {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 240ms var(--ui-ease);
+}
+
+.ed-card-collapse[data-open="false"] {
+  grid-template-rows: 0fr;
+}
+
+.ed-card-collapse > .ed-card-body {
+  min-height: 0;
+  overflow: hidden;
+  transition: padding 240ms var(--ui-ease);
+}
+
+.ed-card-collapse[data-open="false"] > .ed-card-body {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* ------------------------------ 关键词高亮色板 ----------------------------- */
+
+.ed-kw-colors {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: auto;
+}
+
+.ed-kw-colors-label {
+  margin-right: 2px;
+  font-size: 10.5px;
+  color: var(--ui-faint);
+}
+
+.ed-kw-swatch {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.ed-kw-swatch::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--swatch, #ffe9b0);
+  border: 1px solid rgba(14, 27, 42, 0.16);
+  transition: transform 120ms var(--ui-ease);
+}
+
+.ed-kw-swatch:hover::before {
+  transform: scale(1.14);
+}
+
+.ed-kw-swatch.is-active::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.5px var(--ui-accent);
+}
+
+/* --------------------------------- 打印预览 -------------------------------- */
+
+.dialog.ed-print-dialog {
+  max-width: min(1120px, 96vw);
+  max-height: min(94svh, 1120px);
+}
+
+.ed-print-dialog .dialog-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+.ed-print-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0)),
+    var(--ui-chrome-2);
+}
+
+.ed-print-viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: auto;
+}
+
+.ed-print-canvas {
+  flex: none;
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--ui-border);
+  box-shadow: 0 18px 50px rgba(14, 27, 42, 0.18);
+  overflow: hidden;
+}
+
+.ed-print-scaled {
+  transform-origin: top left;
+  position: relative;
+}
+
+.ed-print-foot-note {
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--ui-muted);
+}
+
+/* -------------------------------- 响应式收口 ------------------------------- */
+
+@media (max-width: 999px) {
+  .ed-splitter,
+  .ed-restore {
+    display: none;
+  }
+
+  .ed-body {
+    transition: none;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .editor-root.is-rail-collapsed .ed-body,
+  .editor-root.is-preview-collapsed .ed-body,
+  .editor-root.is-rail-collapsed.is-preview-collapsed .ed-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .ed-rail-head-actions {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ed-body,
+  .ed-card-collapse,
+  .ed-card-chevron,
+  .ed-kw-swatch {
+    transition: none !important;
+  }
+}
+
+.editor-root.is-rail-collapsed .ed-rail {
+  padding: 0;
+  overflow: hidden;
+  border-right: 0;
+  pointer-events: none;
+}
+
+.editor-root.is-preview-collapsed .ed-preview {
+  overflow: hidden;
+  border-left: 0;
+  pointer-events: none;
+}
+
+/* 收起侧栏后，表单可以占用更宽的中间区域 */
+.editor-root.is-preview-collapsed .ed-form {
+  max-width: 720px;
+}
+
+.editor-root.is-rail-collapsed.is-preview-collapsed .ed-form {
+  max-width: 860px;
+}
