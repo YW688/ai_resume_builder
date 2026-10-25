@@ -200,6 +200,16 @@ function SidebarFoot({
             icon: "settings",
             onSelect: onOpenSettings,
           },
+          {
+            label: "用户服务条款",
+            icon: "help",
+            onSelect: () => router.push("/terms"),
+          },
+          {
+            label: "隐私政策",
+            icon: "lock",
+            onSelect: () => router.push("/privacy"),
+          },
           { label: "导出我的数据", icon: "download", onSelect: exportData },
           {
             label: "退出登录",
@@ -671,6 +681,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span className="user-row-mail">{state.user.email}</span>
                 </span>
               </div>
+              <button
+                type="button"
+                className="plan-link"
+                style={{ marginTop: 8 }}
+                onClick={() => {
+                  setMobileOpen(false);
+                  router.push("/terms");
+                }}
+              >
+                用户服务条款 <Icon name="arrowRight" size={12} />
+              </button>
+              <button
+                type="button"
+                className="plan-link"
+                style={{ marginTop: 4 }}
+                onClick={() => {
+                  setMobileOpen(false);
+                  router.push("/privacy");
+                }}
+              >
+                隐私政策 <Icon name="arrowRight" size={12} />
+              </button>
               <button
                 type="button"
                 className="plan-link"

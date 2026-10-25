@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const geistSans = Geist({
+/**
+ * Geist 改为本地字体：构建期不依赖 fonts.googleapis.com（离线/国内网络也能 build），
+ * 运行时自托管，无第三方字体请求。字体文件见 assets/fonts/。
+ */
+const geistSans = localFont({
+  src: "../assets/fonts/geist-latin.woff2",
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  weight: "100 900",
+  display: "swap",
 });
 
 export const metadata: Metadata = {

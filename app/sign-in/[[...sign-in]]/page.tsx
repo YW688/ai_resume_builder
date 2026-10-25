@@ -32,7 +32,11 @@ export default function SignInPage({
       subtitle="使用邮箱和密码，继续你的求职工作台。"
       footer={
         <p className="leading-relaxed">
-          注册后简历、目标岗位与投递记录都会保存在账号下。继续即表示同意
+          注册后简历、目标岗位与投递记录都会保存在账号下。继续即表示你同意
+          <Link href="/terms" className="mx-0.5 text-[#1A6BD6] hover:underline">
+            《用户服务条款》
+          </Link>
+          与
           <Link href="/privacy" className="mx-0.5 text-[#1A6BD6] hover:underline">
             《隐私政策》
           </Link>

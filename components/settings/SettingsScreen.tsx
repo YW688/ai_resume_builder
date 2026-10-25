@@ -326,7 +326,10 @@ function AccountSummary() {
         </div>
       </div>
       <div className="panel-foot">
-        <span>数据保存在 Neon Postgres，按登录账号隔离</span>
+        <span>数据保存在 Neon 托管数据库，按登录账号隔离</span>
+        <Link className="panel-link" href="/terms">
+          服务条款 <Icon name="arrowRight" size={12} />
+        </Link>
         <Link className="panel-link" href="/privacy">
           隐私政策 <Icon name="arrowRight" size={12} />
         </Link>
@@ -1068,7 +1071,7 @@ function DataPanel() {
                 数据与隐私
               </h2>
               <p className="panel-sub">
-                所有数据保存在 Neon Postgres，按登录账号隔离。
+                账号数据保存在 Neon 托管的数据库中，按登录账号隔离；存储区域与跨境传输说明见隐私政策。
               </p>
             </div>
           </div>
@@ -1102,6 +1105,20 @@ function DataPanel() {
                 >
                   重置数据
                 </Btn>
+              </div>
+            </div>
+
+            <div className="settings-row">
+              <div>
+                <div className="settings-row-title">用户服务条款</div>
+                <div className="settings-row-desc">
+                  了解服务范围、AI 输出、点数付费与责任限制。
+                </div>
+              </div>
+              <div className="settings-row-action">
+                <Link className="panel-link" href="/terms">
+                  查看服务条款 <Icon name="arrowRight" size={12} />
+                </Link>
               </div>
             </div>
 
