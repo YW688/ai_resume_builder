@@ -20,9 +20,9 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string }) {
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="sign-up-name"
-          className="text-[12.5px] font-semibold text-[#26364b]"
+          className="text-[12.5px] font-semibold text-[var(--ui-text)]"
         >
-          昵称 <span className="text-[#8e9aa4]">（可选）</span>
+          昵称 <span className="text-[var(--ui-faint)]">（可选）</span>
         </label>
         <input
           id="sign-up-name"
@@ -39,7 +39,7 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string }) {
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="sign-up-email"
-          className="text-[12.5px] font-semibold text-[#26364b]"
+          className="text-[12.5px] font-semibold text-[var(--ui-text)]"
         >
           邮箱
         </label>
@@ -74,21 +74,21 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string }) {
         pendingLabel="正在创建账号…"
       />
 
-      <p className="mt-1 text-center text-[13px] text-[#58657a]">
+      <p className="mt-1 text-center text-[13px] text-[var(--ui-muted)]">
         已有账号？
         <Link
           href={`/sign-in${redirectUrl !== "/dashboard" ? `?redirect_url=${encodeURIComponent(redirectUrl)}` : ""}`}
-          className="ml-1 font-medium text-[#1A6BD6] hover:underline"
+          className="ml-1 font-medium text-[var(--ui-accent)] hover:underline"
         >
           直接登录
         </Link>
       </p>
 
-      <p className="text-center text-[12.5px] leading-relaxed text-[#7d8ba0]">
+      <p className="text-center text-[12.5px] leading-relaxed text-[var(--ui-faint)]">
         不想设置密码？
         <Link
           href={`/sign-in${redirectUrl !== "/dashboard" ? `?redirect_url=${encodeURIComponent(redirectUrl)}` : ""}`}
-          className="ml-1 font-medium text-[#1A6BD6] hover:underline"
+          className="ml-1 font-medium text-[var(--ui-accent)] hover:underline"
         >
           用邮箱验证码登录 / 注册
         </Link>

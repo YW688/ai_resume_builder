@@ -22,12 +22,12 @@ export type CreditIconTone = "default" | "free" | "low" | "member";
 
 type TonePalette = { ink: string; tint: string };
 
-/** 与 app-ui.css 的 --ui-* 同源：蓝 / 暖黄 / 粉红 / 墨蓝+暖黄。 */
+/** 直接引用 --ui-* token，三套主题（含子夜深色）自动换色。 */
 const TONE_PALETTE: Record<CreditIconTone, TonePalette> = {
-  default: { ink: "#1A6BD6", tint: "#E9F1FC" },
-  free: { ink: "#B45309", tint: "#FFF1C9" },
-  low: { ink: "#C4242A", tint: "#FDECEB" },
-  member: { ink: "#0E1B2A", tint: "#FFE9B0" },
+  default: { ink: "var(--ui-accent)", tint: "var(--ui-accent-soft)" },
+  free: { ink: "var(--ui-warning)", tint: "var(--ui-warning-bg)" },
+  low: { ink: "var(--ui-negative)", tint: "var(--ui-negative-bg)" },
+  member: { ink: "var(--ui-text)", tint: "var(--ui-sun-soft)" },
 };
 
 export type CreditIconProps = {

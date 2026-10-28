@@ -20,7 +20,7 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string }) {
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="sign-in-email"
-          className="text-[12.5px] font-semibold text-[#26364b]"
+          className="text-[12.5px] font-semibold text-[var(--ui-text)]"
         >
           邮箱
         </label>
@@ -53,11 +53,11 @@ export function SignInForm({ redirectUrl }: { redirectUrl: string }) {
         pendingLabel="正在登录…"
       />
 
-      <p className="mt-1 text-center text-[13px] text-[#58657a]">
+      <p className="mt-1 text-center text-[13px] text-[var(--ui-muted)]">
         还没有账号？
         <Link
           href={`/sign-up${redirectUrl !== "/dashboard" ? `?redirect_url=${encodeURIComponent(redirectUrl)}` : ""}`}
-          className="ml-1 font-medium text-[#1A6BD6] hover:underline"
+          className="ml-1 font-medium text-[var(--ui-accent)] hover:underline"
         >
           免费注册
         </Link>

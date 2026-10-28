@@ -21,8 +21,9 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", "Noto Sans CJK SC", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-geist-sans), "PingFang SC", "MiSans",
+    "HarmonyOS Sans SC", "Noto Sans SC", "Source Han Sans SC", "Hiragino Sans GB",
+    "DengXian", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
 }
 
 /* 落地页入场动效：纯 CSS transform/opacity，不引动画库 */

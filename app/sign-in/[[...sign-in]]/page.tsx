@@ -36,14 +36,14 @@ export default function SignInPage({
           托管发送和保存，本应用不存储你的邮箱密码。继续即表示你同意
            <Link
             href="/terms"
-            className="mx-0.5 whitespace-nowrap text-[#1A6BD6] hover:underline"
+            className="mx-0.5 whitespace-nowrap text-[var(--ui-accent)] hover:underline"
           >
             《用户服务条款》
           </Link>
           与
           <Link
             href="/privacy"
-            className="mx-0.5 whitespace-nowrap text-[#1A6BD6] hover:underline"
+            className="mx-0.5 whitespace-nowrap text-[var(--ui-accent)] hover:underline"
           >
             《隐私政策》
           </Link>

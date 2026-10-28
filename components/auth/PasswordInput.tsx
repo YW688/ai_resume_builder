@@ -30,7 +30,7 @@ export function PasswordInput({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={id}
-        className="text-[12.5px] font-semibold text-[#26364b]"
+        className="text-[12.5px] font-semibold text-[var(--ui-text)]"
       >
         {label}
       </label>
@@ -59,7 +59,7 @@ export function PasswordInput({
         </button>
       </div>
       {hint ? (
-        <p className="text-[11.5px] text-[#7d8ba0]">{hint}</p>
+        <p className="text-[11.5px] text-[var(--ui-faint)]">{hint}</p>
       ) : null}
     </div>
   );

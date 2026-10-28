@@ -123,7 +123,7 @@ export function NewResumeDialog({
                     padding: "9px 12px",
                     border: `1px solid ${selected ? "var(--ui-accent)" : "var(--ui-border)"}`,
                     borderRadius: 6,
-                    background: selected ? "var(--ui-accent-soft)" : "#fff",
+                    background: selected ? "var(--ui-accent-soft)" : "var(--ui-surface)",
                     textAlign: "left",
                     cursor: "pointer",
                   }}

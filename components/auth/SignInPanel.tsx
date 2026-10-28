@@ -24,7 +24,7 @@ export function SignInPanel({ redirectUrl }: { redirectUrl: string }) {
       <div
         role="tablist"
         aria-label="登录方式"
-        className="grid grid-cols-2 gap-1 rounded-xl border border-white/70 bg-white/40 p-1 backdrop-blur"
+        className="grid grid-cols-2 gap-1 rounded-xl border border-[var(--ui-glass-border)] bg-[var(--ui-glass)] p-1 backdrop-blur"
       >
         {TABS.map((tab) => {
           const active = mode === tab.id;
@@ -37,10 +37,10 @@ export function SignInPanel({ redirectUrl }: { redirectUrl: string }) {
               aria-selected={active}
               aria-controls={`sign-in-panel-${tab.id}`}
               onClick={() => setMode(tab.id)}
-              className={`rounded-lg px-3 py-2 text-[13px] font-semibold transition focus-visible:ring-4 focus-visible:ring-[#1A6BD6]/25 focus-visible:outline-none ${
+              className={`rounded-lg px-3 py-2 text-[13px] font-semibold transition focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--ui-accent)_25%,transparent)] focus-visible:outline-none ${
                 active
-                  ? "bg-white/85 text-[#0E1B2A] shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_10px_20px_-16px_rgba(14,27,42,0.5)]"
-                  : "text-[#58657a] hover:bg-white/50 hover:text-[#26364b]"
+                  ? "bg-[var(--ui-surface)] text-[var(--ui-text)] shadow-[var(--ui-glass-highlight),var(--ui-shadow-float)]"
+                  : "text-[var(--ui-muted)] hover:bg-[var(--ui-glass-card)] hover:text-[var(--ui-text)]"
               }`}
             >
               {tab.label}

@@ -1,11 +1,19 @@
-/* 设置页：左侧 200px 子导航（客户端切换视图），移动端变横向 chips。 */
+/* ==========================================================================
+   设置页
+   --------------------------------------------------------------------------
+   结构：左侧分区导航（桌面 sticky）+ 内容列（页标题 + 当前视图）。
+   内容区宽度与「账号概览」一致；个人资料视图在桌面为 表单 + 页眉预览 两栏。
+   颜色/边框/圆角/阴影全部使用 --ui-* token（app-ui.css / themes.css）。
+   ========================================================================== */
 
 .settings-layout {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: 196px minmax(0, 1fr);
+  gap: 28px;
   align-items: start;
 }
+
+/* ---------------------------------- 分区导航 ------------------------------- */
 
 .settings-nav {
   position: sticky;
@@ -13,17 +21,18 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .settings-nav-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  height: 36px;
-  padding: 0 12px;
+  height: 38px;
+  padding: 0 10px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 9px;
   background: transparent;
   color: var(--ui-muted);
   font-size: 13.5px;
@@ -40,8 +49,8 @@
 }
 
 .settings-nav-item.is-active {
-  border-color: var(--ui-border);
-  background: var(--ui-surface);
+  border-color: var(--ui-glass-border);
+  background: var(--ui-active);
   color: var(--ui-text);
   font-weight: 600;
 }
@@ -52,7 +61,20 @@
 }
 
 .settings-nav-item.is-active .nav-icon {
-  color: var(--ui-text);
+  color: var(--ui-accent);
+}
+
+/* ---------------------------------- 内容列 -------------------------------- */
+
+.settings-main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+.settings-page-head {
+  margin-bottom: 0;
 }
 
 .settings-view-stack {
@@ -62,7 +84,250 @@
   min-width: 0;
 }
 
-/* 套餐与用量 */
+/* -------------------------------- 个人资料 -------------------------------- */
+
+/* 桌面：表单约 2/3 + 页眉预览约 1/3，左右边缘与账号概览对齐。 */
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(240px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.profile-form {
+  min-width: 0;
+}
+
+.profile-preview {
+  position: sticky;
+  top: 16px;
+  min-width: 0;
+}
+
+.profile-preview .panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+/* 简历页眉的“纸面”：姓名/职位/联系方式各占独立行，长文本单行省略。 */
+.profile-preview-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
+  background: var(--ui-surface);
+}
+
+.profile-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.profile-preview-identity {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-preview-name {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-preview-role {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ui-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-preview-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ui-muted);
+}
+
+.profile-preview-contact li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.profile-preview-contact-icon {
+  flex: none;
+  color: var(--ui-faint);
+}
+
+.profile-preview-contact-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-preview-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profile-preview-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ui-rule);
+}
+
+.profile-preview-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.profile-preview-facts span {
+  font-size: 11px;
+  color: var(--ui-muted);
+}
+
+.profile-preview-facts strong {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* -------------------------------- 账号概览 -------------------------------- */
+
+.account-summary {
+  width: 100%;
+}
+
+.account-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.account-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 16px 20px;
+}
+
+.account-summary-item + .account-summary-item {
+  border-left: 1px solid var(--ui-rule);
+}
+
+.account-summary-label {
+  font-size: 11.5px;
+  color: var(--ui-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-summary-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.account-summary-unit {
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ui-muted);
+}
+
+.account-summary-note {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ui-muted);
+}
+
+/* -------------------------------- 外观与主题 ------------------------------- */
+
+.appearance-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ui-rule);
+}
+
+.appearance-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.appearance-fact-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--ui-accent-soft);
+  color: var(--ui-accent);
+}
+
+.appearance-fact-main {
+  min-width: 0;
+}
+
+.appearance-fact-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.appearance-fact-desc {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ui-muted);
+}
+
+.appearance-note {
+  margin-top: 16px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ui-muted);
+}
+
+/* ------------------------------- 套餐与用量 ------------------------------- */
 
 .plan-facts {
   display: grid;
@@ -98,7 +363,7 @@
   flex: 1;
 }
 
-/* 结算弹窗 */
+/* -------------------------------- 结算弹窗 -------------------------------- */
 
 .summary {
   padding: 4px 12px;
@@ -169,7 +434,7 @@
   color: var(--ui-accent);
 }
 
-/* 数据与隐私行 */
+/* ------------------------------- 数据与隐私行 ------------------------------ */
 
 .settings-row {
   display: flex;
@@ -205,22 +470,58 @@
 }
 
 .danger-panel {
-  border-color: #e8b6b6;
+  border-color: var(--ui-negative-bg);
+}
+
+/* -------------------------------- 响应式 --------------------------------- */
+
+/* 900-1100：仍保留左侧导航，但个人资料回到单列，避免表单被压扁。 */
+@media (max-width: 1099px) {
+  .profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-preview {
+    position: static;
+  }
+}
+
+/* 两栏布局下内容列偏窄时，表单字段改为单列，避免输入框被压扁。 */
+@media (min-width: 1100px) and (max-width: 1240px) {
+  .profile-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 900px) {
   .settings-layout {
-    grid-template-columns: minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
     gap: 16px;
   }
 
+  .settings-main {
+    display: contents;
+  }
+
+  .settings-page-head {
+    order: 0;
+    width: 100%;
+  }
+
+  /* 分区导航变成可横向滚动的 chips，入口不丢。 */
   .settings-nav {
+    order: 1;
     position: static;
     flex-direction: row;
+    width: 100%;
+    max-width: 100%;
     gap: 6px;
     overflow-x: auto;
     padding-bottom: 2px;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
   }
 
   .settings-nav::-webkit-scrollbar {
@@ -228,11 +529,44 @@
   }
 
   .settings-nav-item {
-    width: auto;
     flex: none;
+    width: auto;
     height: 34px;
     padding: 0 12px;
     border-radius: 999px;
+    background: var(--ui-glass-card);
+  }
+
+  .settings-nav-item.is-active {
+    border-color: var(--ui-accent);
+    background: var(--ui-accent-soft);
+  }
+
+  .settings-view-stack {
+    order: 2;
+  }
+}
+
+@media (max-width: 760px) {
+  .account-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .account-summary-item:nth-child(even) {
+    border-left: 1px solid var(--ui-rule);
+  }
+
+  .account-summary-item:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .account-summary-item:nth-child(n + 3) {
+    border-top: 1px solid var(--ui-rule);
+  }
+
+  .appearance-facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
   }
 }
 
@@ -252,116 +586,141 @@
   }
 }
 
+@media (max-width: 1100px) {
+  .profile-preview .panel-body {
+    padding: 16px;
+  }
+}
 
-/* 个人资料：表单 + 页眉预览并排 */
+@media (prefers-reduced-motion: reduce) {
+  .settings-nav-item,
+  .pay-option {
+    transition: none;
+  }
+}
 
-.profile-grid {
+/* -------------------------------- 头像编辑 -------------------------------- */
+
+.avatar-xl {
+  width: 88px;
+  height: 88px;
+  font-size: 30px;
+}
+
+.avatar-edit {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+}
+
+.avatar-edit .avatar {
+  transition: box-shadow 160ms var(--ui-ease);
+}
+
+.avatar-edit:hover .avatar,
+.avatar-edit:focus-visible .avatar {
+  box-shadow: 0 0 0 3px var(--ui-accent-soft);
+}
+
+.avatar-edit-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 16px;
-  align-items: start;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid var(--ui-glass-border);
+  background: var(--ui-glass-strong);
+  color: var(--ui-text);
+  box-shadow: var(--ui-shadow-paper);
 }
 
-.profile-preview-stack {
+.profile-avatar-link {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ui-accent);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.profile-avatar-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.avatar-dialog {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.profile-preview-head {
+.avatar-dialog-preview {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  text-align: center;
 }
 
-.profile-preview-name {
-  font-size: 16px;
-  font-weight: 650;
-  line-height: 1.35;
+.avatar-dialog-hint {
+  max-width: 30ch;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ui-muted);
 }
 
-.profile-preview-contact {
+.avatar-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.avatar-dialog-tones {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 16px;
+  gap: 8px;
+}
+
+.avatar-dialog-label {
   font-size: 12px;
   color: var(--ui-muted);
 }
 
-.profile-preview-contact span {
+.avatar-tone-row {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.profile-preview-rule {
-  height: 1px;
-  margin: 16px 0;
-  background: var(--ui-rule);
-}
-
-.profile-preview-facts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  flex-wrap: wrap;
   gap: 10px;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--ui-rule);
 }
 
-.profile-preview-facts div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.profile-preview-facts strong {
-  font-size: 14px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-@media (max-width: 1100px) {
-  .profile-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-
-/* -------------------------------- 账号概览 -------------------------------- */
-
-.account-summary {
-  width: 100%;
-}
-
-.account-summary-grid {
+.avatar-tone-swatch {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.account-summary-grid > div {
-  padding: 16px 20px;
-  min-width: 0;
+.avatar-tone-swatch.is-active {
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 2px var(--ui-accent-soft);
 }
 
-.account-summary-grid > div + div {
-  border-left: 1px solid var(--ui-rule);
-}
-
-@media (max-width: 760px) {
-  .account-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .account-summary-grid > div + div {
-    border-left: 0;
-  }
-  .account-summary-grid > div:nth-child(even) {
-    border-left: 1px solid var(--ui-rule);
-  }
-  .account-summary-grid > div:nth-child(n + 3) {
-    border-top: 1px solid var(--ui-rule);
-  }
+.avatar-dialog-error {
+  font-size: 12px;
+  color: var(--ui-negative);
 }

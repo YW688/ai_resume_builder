@@ -3,33 +3,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { CreditIcon } from "@/components/credits/CreditIcon";
+import { BrandMark } from "@/components/brand/BrandMark";
 import "./auth.css";
-
-function BrandMark() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <path
-        d="M8.5 4.5h10.2l4.8 4.8v18.2H8.5z"
-        fill="#fff"
-        stroke="#fff"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M18.7 4.5v4.8h4.8"
-        stroke="#1A6BD6"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12.2 14h7.6M12.2 18h5.6M12.2 22h4"
-        stroke="#c5d0dd"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 const POINTS = [
   {
@@ -86,7 +61,7 @@ export function AuthShell({
           <div className="auth-visual-content">
             <div className="auth-brand">
               <span className="auth-brand-mark">
-                <BrandMark />
+                <BrandMark size={22} />
               </span>
               <div>
                 <p className="auth-brand-name">AI 简历编辑器</p>

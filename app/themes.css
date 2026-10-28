@@ -1,0 +1,229 @@
+/* ==========================================================================
+   主题层（三套主题 · 全局毛玻璃）
+   --------------------------------------------------------------------------
+   唯一主题来源。用 `:root[data-theme="…"]` 提高特异性，保证无论 app-ui.css
+   何时加载都能覆盖它的 :root 默认值（两边特异性不同，顺序无关）。
+
+   主题 id：mist（晴岚 · 默认）｜ember（绯雾）｜midnight（子夜）
+   持久化：localStorage["app.theme.v1"]，首帧由 app/layout.tsx 的内联脚本写入
+          <html data-theme>，避免闪白。
+
+   色值来源：design/theme-refs/（用户提供的三张 palette 参考图）。
+   组件 CSS 只允许用这些 token，不允许写死颜色。
+   ========================================================================== */
+
+/* ------------------------------- 晴岚 · mist ------------------------------ */
+/* 淡紫玻璃 + 雾白，来自第三张参考图（portfolio glass）。 */
+:root,
+:root[data-theme="mist"] {
+  color-scheme: light;
+
+  --ui-chrome: #ece9f7;
+  --ui-chrome-2: #e4dff3;
+  --ui-chrome-3: #d9d2ee;
+  --ui-surface: #ffffff;
+  --ui-raised: #f4f1fb;
+  --ui-active: #e9e3f9;
+  --ui-border: #e3ddf2;
+  --ui-rule: #efeaf9;
+  --ui-control: #cdc5e4;
+
+  --ui-text: #1c1733;
+  --ui-muted: #5b5478;
+  --ui-faint: #6f6890;
+
+  --ui-accent: #6c4ce0;
+  --ui-accent-strong: #5232c4;
+  --ui-accent-soft: #ede8fd;
+  --ui-accent-soft-2: #dcd3fa;
+
+  --ui-pink: #f0437c;
+  --ui-sun: #ffe9b0;
+  --ui-sun-soft: #fff4d2;
+
+  --ui-positive: #1e7a52;
+  --ui-positive-bg: #e2f5ec;
+  --ui-negative: #b81f37;
+  --ui-negative-bg: #fbe8ec;
+  --ui-warning: #8a5a00;
+  --ui-warning-bg: #fdf2dc;
+  --ui-neutral-bg: #efecf7;
+
+  --ui-primary: #1c1733;
+  --ui-primary-ink: #ffffff;
+
+  /* 毛玻璃 */
+  --ui-glass-blur: 24px;
+  --ui-glass-sat: 1.5;
+  --ui-glass: rgba(255, 255, 255, 0.56);
+  --ui-glass-sheet: rgba(255, 255, 255, 0.66);
+  --ui-glass-card: rgba(255, 255, 255, 0.46);
+  --ui-glass-strong: rgba(255, 255, 255, 0.86);
+  --ui-glass-border: rgba(255, 255, 255, 0.72);
+  --ui-glass-line: rgba(74, 58, 140, 0.1);
+  --ui-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --ui-shadow-float: 0 1px 2px rgba(46, 30, 96, 0.05),
+    0 18px 44px -22px rgba(52, 34, 118, 0.28);
+  --ui-shadow-sheet: 0 12px 40px -24px rgba(52, 34, 118, 0.35);
+  --ui-scrim: rgba(28, 20, 60, 0.34);
+
+  /* 环境光（侧栏与页面背后的柔和色场） */
+  --ui-ambient-1: rgba(150, 120, 255, 0.34);
+  --ui-ambient-2: rgba(255, 168, 206, 0.3);
+  --ui-ambient-3: rgba(120, 214, 255, 0.26);
+}
+
+/* ------------------------------- 绯雾 · ember ----------------------------- */
+/* 暖白纸面 + 绯红，来自第一张参考图（#FE2E4B / #0F0E0E / #161316 / #4B4A4B / #FFFFFF）。 */
+:root[data-theme="ember"] {
+  color-scheme: light;
+
+  --ui-chrome: #f7eeee;
+  --ui-chrome-2: #f1e4e5;
+  --ui-chrome-3: #e9d8da;
+  --ui-surface: #ffffff;
+  --ui-raised: #f9f0f0;
+  --ui-active: #f4e5e7;
+  --ui-border: #ebd9db;
+  --ui-rule: #f4e9ea;
+  --ui-control: #ddc6c9;
+
+  --ui-text: #161316;
+  --ui-muted: #4b4a4b;
+  --ui-faint: #6d6668;
+
+  --ui-accent: #c81c38;
+  --ui-accent-strong: #a51530;
+  --ui-accent-soft: #fbe8ec;
+  --ui-accent-soft-2: #f8cdd6;
+
+  --ui-pink: #fe2e4b;
+  --ui-sun: #ffd9a8;
+  --ui-sun-soft: #fff0d9;
+
+  --ui-positive: #1f6b45;
+  --ui-positive-bg: #e3f3e9;
+  --ui-negative: #b3142c;
+  --ui-negative-bg: #fbe7ea;
+  --ui-warning: #8a4a00;
+  --ui-warning-bg: #fdeede;
+  --ui-neutral-bg: #f3ecec;
+
+  --ui-primary: #161316;
+  --ui-primary-ink: #ffffff;
+
+  --ui-glass-blur: 24px;
+  --ui-glass-sat: 1.4;
+  --ui-glass: rgba(255, 255, 255, 0.6);
+  --ui-glass-sheet: rgba(255, 255, 255, 0.7);
+  --ui-glass-card: rgba(255, 255, 255, 0.52);
+  --ui-glass-strong: rgba(255, 255, 255, 0.88);
+  --ui-glass-border: rgba(255, 255, 255, 0.75);
+  --ui-glass-line: rgba(120, 40, 55, 0.1);
+  --ui-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  --ui-shadow-float: 0 1px 2px rgba(60, 20, 26, 0.05),
+    0 18px 44px -22px rgba(90, 24, 38, 0.24);
+  --ui-shadow-sheet: 0 12px 40px -24px rgba(90, 24, 38, 0.3);
+  --ui-scrim: rgba(40, 18, 22, 0.34);
+
+  --ui-ambient-1: rgba(254, 46, 75, 0.18);
+  --ui-ambient-2: rgba(255, 150, 110, 0.2);
+  --ui-ambient-3: rgba(255, 214, 150, 0.24);
+}
+
+/* ------------------------------- 子夜 · midnight ------------------------- */
+/* 深靛底 + 电光紫 + 薄荷，来自第二张参考图（#2631AD / #7F24E7 / #2AFFCC / #141033 / #FFFFFF）。 */
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+
+  --ui-chrome: #0b0920;
+  --ui-chrome-2: #161232;
+  --ui-chrome-3: #1f1a44;
+  --ui-surface: #15112e;
+  --ui-raised: #1b1640;
+  --ui-active: #241e4d;
+  --ui-border: #2c2556;
+  --ui-rule: #241e48;
+  --ui-control: #3b3369;
+
+  --ui-text: #f2f0ff;
+  --ui-muted: #b3aed6;
+  --ui-faint: #8f89b8;
+
+  --ui-accent: #b49cff;
+  --ui-accent-strong: #cbb8ff;
+  --ui-accent-soft: rgba(127, 36, 231, 0.22);
+  --ui-accent-soft-2: rgba(127, 36, 231, 0.36);
+
+  --ui-pink: #ff5fa2;
+  --ui-sun: #2affcc;
+  --ui-sun-soft: rgba(42, 255, 204, 0.16);
+
+  --ui-positive: #4fe3b0;
+  --ui-positive-bg: rgba(42, 255, 204, 0.14);
+  --ui-negative: #ff7488;
+  --ui-negative-bg: rgba(255, 80, 110, 0.16);
+  --ui-warning: #ffc46b;
+  --ui-warning-bg: rgba(255, 180, 80, 0.14);
+  --ui-neutral-bg: rgba(255, 255, 255, 0.06);
+
+  --ui-primary: #7f24e7;
+  --ui-primary-ink: #ffffff;
+
+  --ui-glass-blur: 26px;
+  --ui-glass-sat: 1.35;
+  --ui-glass: rgba(26, 21, 56, 0.6);
+  --ui-glass-sheet: rgba(19, 15, 38, 0.82);
+  --ui-glass-card: rgba(33, 27, 66, 0.55);
+  --ui-glass-strong: rgba(26, 21, 56, 0.92);
+  --ui-glass-border: rgba(255, 255, 255, 0.09);
+  --ui-glass-line: rgba(255, 255, 255, 0.07);
+  --ui-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --ui-shadow-float: 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 20px 48px -22px rgba(0, 0, 0, 0.8);
+  --ui-shadow-sheet: 0 16px 48px -26px rgba(0, 0, 0, 0.9);
+  --ui-scrim: rgba(4, 3, 12, 0.6);
+
+  --ui-ambient-1: rgba(127, 36, 231, 0.38);
+  --ui-ambient-2: rgba(42, 255, 204, 0.14);
+  --ui-ambient-3: rgba(38, 49, 173, 0.42);
+}
+
+/* 不支持 backdrop-filter 的浏览器：退回不透明表面，保证可读性。 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root,
+  :root[data-theme="mist"] {
+    --ui-glass: rgba(255, 255, 255, 0.94);
+    --ui-glass-sheet: #ffffff;
+    --ui-glass-card: #ffffff;
+    --ui-glass-strong: #ffffff;
+  }
+  :root[data-theme="ember"] {
+    --ui-glass: rgba(255, 255, 255, 0.94);
+    --ui-glass-sheet: #ffffff;
+    --ui-glass-card: #ffffff;
+    --ui-glass-strong: #ffffff;
+  }
+  :root[data-theme="midnight"] {
+    --ui-glass: #171233;
+    --ui-glass-sheet: #100c26;
+    --ui-glass-card: #1b1640;
+    --ui-glass-strong: #1b1640;
+  }
+}
+
+/* 用户要求减少透明（系统设置）时，同样退回实色。 */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --ui-glass: rgba(255, 255, 255, 0.96);
+    --ui-glass-sheet: #ffffff;
+    --ui-glass-card: #ffffff;
+    --ui-glass-strong: #ffffff;
+  }
+  :root[data-theme="midnight"] {
+    --ui-glass: #171233;
+    --ui-glass-sheet: #100c26;
+    --ui-glass-card: #1b1640;
+    --ui-glass-strong: #1b1640;
+  }
+}

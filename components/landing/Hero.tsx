@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import HeroVideo from "./HeroVideo";
+import { BrandMark } from "@/components/brand/BrandMark";
 
 const NAV = [
   { href: "#how", label: "怎么用" },
@@ -51,8 +52,8 @@ export default function Hero() {
       <header className="ld-rise absolute inset-x-0 top-4 z-20 flex justify-center px-4">
         <nav className="flex w-full max-w-[820px] items-center rounded-full border border-white/40 bg-white/30 p-1.5 pl-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_10px_30px_rgba(6,20,40,0.10)] backdrop-blur-xl backdrop-saturate-125">
           <Link href="/" className="flex shrink-0 items-center gap-2 pr-3">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#1A6BD6] to-[#E5355B] text-[10px] font-bold text-white">
-              简
+            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-[7px] bg-[#0E1B2A] text-white shadow-[0_4px_12px_rgba(14,27,42,0.28)]">
+              <BrandMark size={14} />
             </span>
             <span className="text-[13px] font-semibold tracking-tight text-[#0E1B2A]">
               AI 简历编辑器

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Hero from "../components/landing/Hero";
+import { BrandMark } from "@/components/brand/BrandMark";
 import {
   CREDIT_COST_ROWS,
   CREDIT_PACKAGES,
@@ -587,7 +588,10 @@ function Footer() {
   return (
     <footer className="bg-[#0B1626]">
       <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-9 text-center text-[13px] leading-relaxed text-white/70">
-        <p className="text-sm font-semibold text-white/80">AI 简历编辑器 · 为中文求职者制作</p>
+        <div className="flex items-center justify-center gap-2.5">
+          <BrandMark size={20} />
+          <p className="text-sm font-semibold text-white/80">AI 简历编辑器 · 为中文求职者制作</p>
+        </div>
         <p>ICP 备案号：预留位 · 公安备案号：预留位</p>
         <p className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
           <Link href="/terms" className="underline-offset-2 hover:text-white hover:underline">

@@ -33,17 +33,20 @@ import {
   Toggle,
 } from "@/components/app/ui";
 import { Icon, type IconName } from "@/components/app/icons";
+import { ProfileAvatar } from "./ProfileAvatar";
+import { ThemePicker } from "@/components/theme/ThemePicker";
 import { deleteAccount } from "@/lib/actions";
 import { authClient } from "@/lib/auth/client";
 import "./settings.css";
 import "@/components/credits/credits.css";
 
-type ViewId = "profile" | "preferences" | "plan" | "data";
+type ViewId = "profile" | "preferences" | "plan" | "appearance" | "data";
 
 const VIEWS: { id: ViewId; label: string; icon: IconName }[] = [
   { id: "profile", label: "个人资料", icon: "user" },
   { id: "preferences", label: "求职偏好", icon: "sliders" },
   { id: "plan", label: "点数与套餐", icon: "chart" },
+  { id: "appearance", label: "外观", icon: "sparkles" },
   { id: "data", label: "数据与隐私", icon: "lock" },
 ];
 
@@ -111,83 +114,90 @@ function ProfilePanel() {
   const filled = [form.name, form.email, form.phone, form.city, form.targetRole].filter(
     (value) => value.trim().length > 0,
   ).length;
+  const filledPercent = Math.round((filled / 5) * 100);
+
+  const displayName = form.name.trim() || "未命名";
+  const displayRole = form.targetRole.trim() || "未设置目标职位";
+  const displayEmail = form.email.trim() || "未填写邮箱";
+  const displayPhone = form.phone.trim() || "未填写手机";
+  const displayCity = form.city.trim() || "未填写城市";
 
   return (
     <div className="profile-grid">
-      <section className="panel" aria-labelledby="profile-title">
-      <div className="panel-head has-rule">
-        <div>
-          <h2 className="panel-title" id="profile-title">
-            个人资料
-          </h2>
-          <p className="panel-sub">姓名与联系方式会出现在简历页眉与导出文件里。</p>
+      <section className="panel profile-form" aria-labelledby="profile-title">
+        <div className="panel-head has-rule">
+          <div>
+            <h2 className="panel-title" id="profile-title">
+              个人资料
+            </h2>
+            <p className="panel-sub">姓名与联系方式会出现在简历页眉与导出文件里。</p>
+          </div>
         </div>
-      </div>
-      <div className="panel-body">
-        <div className="form-grid">
-          <Field
-            label="姓名"
-            required
-            htmlFor={`${fieldId}-name`}
-            error={errors.name}
-          >
-            <input
-              id={`${fieldId}-name`}
-              className="input"
-              value={form.name}
-              onChange={(event) => patch("name", event.target.value)}
-              autoComplete="name"
-            />
-          </Field>
-          <Field
-            label="邮箱"
-            required
-            htmlFor={`${fieldId}-email`}
-            error={errors.email}
-            hint="用于投递记录与面试提醒"
-          >
-            <input
-              id={`${fieldId}-email`}
-              className="input"
-              type="email"
-              value={form.email}
-              onChange={(event) => patch("email", event.target.value)}
-              autoComplete="email"
-            />
-          </Field>
-          <Field label="手机" htmlFor={`${fieldId}-phone`}>
-            <input
-              id={`${fieldId}-phone`}
-              className="input"
-              value={form.phone}
-              onChange={(event) => patch("phone", event.target.value)}
-              autoComplete="tel"
-            />
-          </Field>
-          <Field label="城市" htmlFor={`${fieldId}-city`}>
-            <input
-              id={`${fieldId}-city`}
-              className="input"
-              value={form.city}
-              onChange={(event) => patch("city", event.target.value)}
-              autoComplete="address-level2"
-            />
-          </Field>
-          <Field
-            label="目标职位"
-            htmlFor={`${fieldId}-role`}
-            className="full"
-            hint="一句话描述你想找的职位，会用于工作台与偏好匹配"
-          >
-            <input
-              id={`${fieldId}-role`}
-              className="input"
-              value={form.targetRole}
-              onChange={(event) => patch("targetRole", event.target.value)}
-            />
-          </Field>
+        <div className="panel-body">
+          <div className="form-grid profile-form-grid">
+            <Field
+              label="姓名"
+              required
+              htmlFor={`${fieldId}-name`}
+              error={errors.name}
+            >
+              <input
+                id={`${fieldId}-name`}
+                className="input"
+                value={form.name}
+                onChange={(event) => patch("name", event.target.value)}
+                autoComplete="name"
+              />
+            </Field>
+            <Field
+              label="邮箱"
+              required
+              htmlFor={`${fieldId}-email`}
+              error={errors.email}
+              hint="用于投递记录与面试提醒"
+            >
+              <input
+                id={`${fieldId}-email`}
+                className="input"
+                type="email"
+                value={form.email}
+                onChange={(event) => patch("email", event.target.value)}
+                autoComplete="email"
+              />
+            </Field>
+            <Field label="手机" htmlFor={`${fieldId}-phone`}>
+              <input
+                id={`${fieldId}-phone`}
+                className="input"
+                value={form.phone}
+                onChange={(event) => patch("phone", event.target.value)}
+                autoComplete="tel"
+              />
+            </Field>
+            <Field label="城市" htmlFor={`${fieldId}-city`}>
+              <input
+                id={`${fieldId}-city`}
+                className="input"
+                value={form.city}
+                onChange={(event) => patch("city", event.target.value)}
+                autoComplete="address-level2"
+              />
+            </Field>
+            <Field
+              label="目标职位"
+              htmlFor={`${fieldId}-role`}
+              className="full"
+              hint="一句话描述你想找的职位，会用于工作台与偏好匹配"
+            >
+              <input
+                id={`${fieldId}-role`}
+                className="input"
+                value={form.targetRole}
+                onChange={(event) => patch("targetRole", event.target.value)}
+              />
+            </Field>
+          </div>
         </div>
-      </div>
         <div className="panel-foot">
           <span>数据保存在 Neon Postgres</span>
           <Btn variant="primary" onClick={save}>
@@ -200,58 +210,69 @@ function ProfilePanel() {
         <div className="panel-head">
           <div>
             <h2 className="panel-title">简历页眉预览</h2>
-            <p className="panel-sub">保存后会同步到你的所有简历</p>
+            <p className="panel-sub">保存后同步到你的所有简历</p>
           </div>
         </div>
         <div className="panel-body">
-          <div className="profile-preview-head">
-            <span className="avatar avatar-lg" aria-hidden="true">
-              {form.name.trim().slice(0, 1) || "林"}
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <div className="profile-preview-name">
-                {form.name.trim() || "未命名"}
+          <div className="profile-preview-sheet">
+            <ProfileAvatar name={displayName} role={displayRole} />
+
+            <ul className="profile-preview-contact">
+              <li title={displayEmail}>
+                <Icon
+                  name="mail"
+                  size={13}
+                  className="profile-preview-contact-icon"
+                />
+                <span className="profile-preview-contact-value">
+                  {displayEmail}
+                </span>
+              </li>
+              <li title={displayPhone}>
+                <Icon
+                  name="phone"
+                  size={13}
+                  className="profile-preview-contact-icon"
+                />
+                <span className="profile-preview-contact-value">
+                  {displayPhone}
+                </span>
+              </li>
+              <li title={displayCity}>
+                <Icon
+                  name="pin"
+                  size={13}
+                  className="profile-preview-contact-icon"
+                />
+                <span className="profile-preview-contact-value">
+                  {displayCity}
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="profile-preview-meter">
+            <div className="progress">
+              <div className="progress-meta">
+                <span>资料完整度</span>
+                <span className="progress-value">{filledPercent}%</span>
               </div>
-              <div className="t-12 t-muted">
-                {form.targetRole.trim() || "未设置目标职位"}
+              <Progress value={filledPercent} />
+            </div>
+
+            <div className="profile-preview-facts">
+              <div>
+                <span>简历</span>
+                <strong>{state.resumes.length} 份</strong>
               </div>
-            </div>
-          </div>
-
-          <div className="profile-preview-contact">
-            <span>
-              <Icon name="mail" size={13} /> {form.email.trim() || "未填写邮箱"}
-            </span>
-            <span>
-              <Icon name="phone" size={13} /> {form.phone.trim() || "未填写手机"}
-            </span>
-            <span>
-              <Icon name="pin" size={13} /> {form.city.trim() || "未填写城市"}
-            </span>
-          </div>
-
-          <div className="profile-preview-rule" aria-hidden="true" />
-
-          <div className="progress">
-            <div className="progress-meta">
-              <span>资料完整度</span>
-              <span className="progress-value">{Math.round((filled / 5) * 100)}%</span>
-            </div>
-            <Progress value={(filled / 5) * 100} />
-          </div>
-
-          <div className="profile-preview-facts">
-            <div>
-              <span className="t-11 t-muted">简历</span>
-              <strong>{state.resumes.length} 份</strong>
-            </div>
-            <div>
-              <span className="t-11 t-muted">目标岗位</span>
-              <strong>{state.jobs.length} 个</strong>
-            </div>
-            <div>
-              <span className="t-11 t-muted">投递记录</span>
-              <strong>{state.applications.length} 条</strong>
+              <div>
+                <span>目标岗位</span>
+                <strong>{state.jobs.length} 个</strong>
+              </div>
+              <div>
+                <span>投递记录</span>
+                <strong>{state.applications.length} 条</strong>
+              </div>
             </div>
           </div>
         </div>
@@ -280,49 +301,41 @@ function AccountSummary() {
           <h2 className="panel-title" id="account-summary-title">
             账号概览
           </h2>
-          <p className="panel-sub">这几个数字会随简历和投递记录实时变化</p>
+          <p className="panel-sub">随简历与投递记录实时变化</p>
         </div>
         <span className="t-11 t-faint">{formatDate(state.user.joinedAt)} 加入</span>
       </div>
       <div className="account-summary-grid">
-        <div>
-          <div className="kpi-label">加入天数</div>
-          <div className="kpi-value-row">
-            <span className="kpi-value" style={{ fontSize: 24 }}>
-              {joinedDays}
-            </span>
-            <span className="kpi-unit">天</span>
-          </div>
+        <div className="account-summary-item">
+          <span className="account-summary-label">加入天数</span>
+          <span className="account-summary-value num">
+            {joinedDays}
+            <span className="account-summary-unit">天</span>
+          </span>
         </div>
-        <div>
-          <div className="kpi-label">点数余额</div>
-          <div className="kpi-value-row">
-            <span className="kpi-value" style={{ fontSize: 24 }}>
-              {credits.balance}
-            </span>
-            <span className="kpi-unit">点</span>
-          </div>
-          <div className="kpi-note">
+        <div className="account-summary-item">
+          <span className="account-summary-label">点数余额</span>
+          <span className="account-summary-value num">
+            {credits.balance}
+            <span className="account-summary-unit">点</span>
+          </span>
+          <span className="account-summary-note">
             今日免费还剩 {credits.dailyRemaining} / {credits.dailyFree} 点
-          </div>
+          </span>
         </div>
-        <div>
-          <div className="kpi-label">简历</div>
-          <div className="kpi-value-row">
-            <span className="kpi-value" style={{ fontSize: 24 }}>
-              {state.resumes.length}
-            </span>
-            <span className="kpi-unit">份</span>
-          </div>
+        <div className="account-summary-item">
+          <span className="account-summary-label">简历</span>
+          <span className="account-summary-value num">
+            {state.resumes.length}
+            <span className="account-summary-unit">份</span>
+          </span>
         </div>
-        <div>
-          <div className="kpi-label">本周投递</div>
-          <div className="kpi-value-row">
-            <span className="kpi-value" style={{ fontSize: 24 }}>
-              {thisWeek}
-            </span>
-            <span className="kpi-unit">次</span>
-          </div>
+        <div className="account-summary-item">
+          <span className="account-summary-label">本周投递</span>
+          <span className="account-summary-value num">
+            {thisWeek}
+            <span className="account-summary-unit">次</span>
+          </span>
         </div>
       </div>
       <div className="panel-foot">
@@ -1013,6 +1026,60 @@ function PlanPanel() {
   );
 }
 
+/* --------------------------------- 外观与主题 ------------------------------- */
+
+const APPEARANCE_POINTS: { icon: IconName; title: string; desc: string }[] = [
+  {
+    icon: "sparkles",
+    title: "全局毛玻璃",
+    desc: "侧栏、顶栏与卡片共用一层玻璃质感，并随主题变换环境光。",
+  },
+  {
+    icon: "checkCircle",
+    title: "即时生效",
+    desc: "点击任意主题，整套工作台立即切换，无需刷新页面。",
+  },
+  {
+    icon: "refresh",
+    title: "会记住选择",
+    desc: "主题保存在本机浏览器，下次打开自动沿用。",
+  },
+];
+
+function AppearancePanel() {
+  return (
+    <section className="panel appearance-panel" aria-labelledby="appearance-title">
+      <div className="panel-head has-rule">
+        <div>
+          <h2 className="panel-title" id="appearance-title">
+            外观与主题
+          </h2>
+          <p className="panel-sub">选择界面主题，随即生效，并记住你的选择。</p>
+        </div>
+      </div>
+      <div className="panel-body">
+        <ThemePicker layout="cards" label="界面主题" />
+        <div className="appearance-facts">
+          {APPEARANCE_POINTS.map((point) => (
+            <div className="appearance-fact" key={point.title}>
+              <span className="appearance-fact-icon" aria-hidden="true">
+                <Icon name={point.icon} size={15} />
+              </span>
+              <div className="appearance-fact-main">
+                <div className="appearance-fact-title">{point.title}</div>
+                <div className="appearance-fact-desc">{point.desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="appearance-note">
+          主题只影响工作台界面；导出的简历 PDF 始终保持白纸黑字。
+        </p>
+      </div>
+    </section>
+  );
+}
+
 /* -------------------------------- 数据与隐私 ------------------------------- */
 
 function DataPanel() {
@@ -1198,49 +1265,46 @@ export function SettingsScreen() {
   const [view, setView] = useState<ViewId>("profile");
 
   return (
-    <>
-      <div className="page-head">
-        <div className="page-head-main">
-          <h1 className="page-title">设置</h1>
-          <p className="page-sub">账号、求职偏好与点数</p>
-        </div>
-      </div>
+    <div className="settings-layout">
+      <nav className="settings-nav" aria-label="设置分区">
+        {VIEWS.map((item) => {
+          const active = view === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`settings-nav-item${active ? " is-active" : ""}`}
+              aria-current={active ? "true" : undefined}
+              onClick={() => setView(item.id)}
+            >
+              <Icon name={item.icon} size={16} className="nav-icon" />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
-      <div className="settings-layout">
-        <nav className="settings-nav" aria-label="设置分区">
-          {VIEWS.map((item) => {
-            const active = view === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={`settings-nav-item${active ? " is-active" : ""}`}
-                aria-current={active ? "true" : undefined}
-                onClick={() => setView(item.id)}
-              >
-                <Icon name={item.icon} size={16} className="nav-icon" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
+      <div className="settings-main">
+        <header className="page-head settings-page-head">
+          <div className="page-head-main">
+            <h1 className="page-title">设置</h1>
+            <p className="page-sub">个人资料、求职偏好、点数与外观</p>
+          </div>
+        </header>
 
-        <div style={{ minWidth: 0 }}>
+        <div className="settings-view-stack">
           {view === "profile" ? (
-            <div className="settings-view-stack">
+            <>
               <ProfilePanel />
               <AccountSummary />
-            </div>
+            </>
           ) : null}
           {view === "preferences" ? <PreferencesPanel /> : null}
-          {view === "plan" ? (
-            <div className="settings-view-stack">
-              <PlanPanel />
-            </div>
-          ) : null}
+          {view === "plan" ? <PlanPanel /> : null}
+          {view === "appearance" ? <AppearancePanel /> : null}
           {view === "data" ? <DataPanel /> : null}
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -2,15 +2,22 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Icon, type IconName } from "@/components/app/icons";
-import { ConfirmDialog, IconBtn, Menu, Progress } from "@/components/app/ui";
+import { ConfirmDialog, IconBtn, Menu } from "@/components/app/ui";
 import { NewResumeDialog } from "@/components/app/NewResumeDialog";
-import { CreditIcon } from "@/components/credits/CreditIcon";
+import { CreditIsland } from "@/components/app/CreditIsland";
+import { UserAvatar } from "@/components/app/UserAvatar";
+import { BrandMark } from "@/components/brand/BrandMark";
 import { useWorkspace } from "@/lib/mock/store";
 import { authClient } from "@/lib/auth/client";
-import { formatRelative, unreadNotifications } from "@/lib/mock/compute";
+import {
+  applicationCounts,
+  formatRelative,
+  unreadNotifications,
+} from "@/lib/mock/compute";
 import { readJsonPref, writeJsonPref } from "@/lib/ui/prefs";
+import { THEMES, useTheme } from "@/components/theme/ThemeProvider";
 import "@/components/credits/credits.css";
 
 const NAV: { href: string; label: string; icon: IconName }[] = [
@@ -28,6 +35,18 @@ const PAGE_LABELS: Record<string, string> = {
   "/dashboard/settings": "设置",
 };
 
+const PREF_EVENT = "app:prefchange";
+
+/** localStorage 偏好的外部订阅（同标签页用自定义事件，跨标签页用 storage 事件）。 */
+function subscribePrefChange(onChange: () => void) {
+  window.addEventListener(PREF_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(PREF_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
 type CommandItem = {
   id: string;
   label: string;
@@ -36,39 +55,6 @@ type CommandItem = {
   icon: IconName;
   run: () => void;
 };
-
-function ProductMark({ size = 30 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 32 32"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M8.5 4.5h10.2l4.8 4.8v18.2H8.5z"
-        fill="#fff"
-        stroke="#1a6bd6"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M18.7 4.5v4.8h4.8"
-        stroke="#1a6bd6"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12.2 14h7.6M12.2 18h5.6M12.2 22h4"
-        stroke="#c5d0dd"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-      <circle cx="25" cy="25" r="3" fill="#e5355b" />
-    </svg>
-  );
-}
 
 function NavLinks({
   pathname,
@@ -114,95 +100,97 @@ function NavLinks({
   );
 }
 
-/** 侧栏 / 移动导航共用的点数卡：余额 + 今日免费剩余 + 购买入口。 */
-function CreditMiniCard({ onOpen }: { onOpen: () => void }) {
+/** 侧栏中部：最近编辑 + 本周进度，填满侧栏空白，避免出现大片空区。 */
+function SidebarRecents() {
   const { state } = useWorkspace();
-  const credits = state.credits;
-  const dailyPct =
-    credits.dailyFree > 0 ? (credits.dailyUsed / credits.dailyFree) * 100 : 0;
-  const lowBalance = credits.plan === "member" && credits.balance === 0;
-  const tone =
-    credits.balance > 0
-      ? "default"
-      : credits.plan === "free"
-        ? "free"
-        : "low";
+  const counts = applicationCounts(state.applications);
+  const recent = [...state.resumes]
+    .sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    )
+    .slice(0, 5);
 
   return (
-    <div className="credit-mini">
-      <div className="credit-mini-head">
-        <span className="credit-mini-label">
-          <CreditIcon size={16} tone={tone} decorative />
-          点数余额
-        </span>
-        <span className="credit-mini-tier">
-          {lowBalance
-            ? "余额不足"
-            : credits.plan === "member"
-              ? "点数会员"
-              : "免费额度"}
-        </span>
+    <div className="sidebar-mid">
+      <div className="sidebar-section-head">
+        <span>最近编辑</span>
+        <Link href="/dashboard/resumes" className="sidebar-section-link">
+          全部
+        </Link>
       </div>
+      <ul className="sidebar-recent-list">
+        {recent.map((resume) => {
+          const job = state.jobs.find((item) => item.id === resume.targetJobId);
+          return (
+            <li key={resume.id}>
+              <Link href={`/editor?id=${resume.id}`} className="sidebar-recent">
+                <span className="sidebar-recent-title">{resume.title}</span>
+                <span className="sidebar-recent-sub">
+                  {job ? `${job.company} · ${job.title}` : "未设目标岗位"}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+        {recent.length === 0 ? (
+          <li className="sidebar-recent-empty">还没有简历</li>
+        ) : null}
+      </ul>
 
-      <div className="credit-mini-balance">
-        <strong className="num">{credits.balance}</strong>
-        <span>点</span>
-      </div>
-
-      <div className="credit-mini-daily">
-        <div className="credit-mini-daily-head">
-          <span>今日免费</span>
-          <span>
-            {credits.dailyRemaining} / {credits.dailyFree} 点
-          </span>
-        </div>
-        <Progress value={dailyPct} tone="warning" />
-      </div>
-
-      <div className="credit-mini-foot">
-        <button type="button" className="plan-link" onClick={onOpen}>
-          购买点数 <Icon name="chevronRight" size={12} />
-        </button>
-        <span className="t-11 t-faint">PDF 导出免费</span>
+      <div className="sidebar-week" aria-label="本周求职进度">
+        本周 <strong className="num">{counts.thisWeek}</strong> 次投递 ·{" "}
+        <strong className="num">{counts.interview}</strong> 场面试 ·{" "}
+        <strong className="num">{counts.offer}</strong> 个 Offer
       </div>
     </div>
   );
 }
 
-function SidebarFoot({
-  onOpenSettings,
-}: {
-  onOpenSettings: () => void;
-}) {
+/** 顶栏右上角账户菜单：账号、条款、导出、主题、退出、重置演示数据。
+ *  侧栏不再重复放账户行，账户入口统一收在页面最上方的头像。 */
+function AccountMenu() {
   const router = useRouter();
   const { state, resetDemo, exportData, toast } = useWorkspace();
+  const { theme, cycleTheme } = useTheme();
   const [resetOpen, setResetOpen] = useState(false);
+  const nextTheme =
+    THEMES[(THEMES.findIndex((item) => item.id === theme) + 1) % THEMES.length];
 
   return (
-    <div className="app-sidebar-foot">
-      <CreditMiniCard onOpen={onOpenSettings} />
-
+    <>
       <Menu
-        align="left"
+        align="right"
+        className="account-menu"
+        header={
+          <div className="account-menu-head">
+            <UserAvatar size="md" />
+            <div className="account-menu-identity">
+              <strong title={state.user.name}>{state.user.name}</strong>
+              <span title={state.user.email}>{state.user.email}</span>
+            </div>
+          </div>
+        }
         trigger={
-          <button type="button" className="user-row" aria-label="账户菜单">
-            <span className="avatar">{state.user.name.slice(0, 1)}</span>
-            <span className="user-row-text">
-              <span className="user-row-name">{state.user.name}</span>
-              <span className="user-row-mail">{state.user.email}</span>
-            </span>
-            <Icon name="chevronDown" size={14} className="nav-icon" />
+          <button type="button" className="btn-icon" aria-label="账户菜单">
+            <UserAvatar size="sm" />
           </button>
         }
         items={[
           {
             label: "账号设置",
             icon: "settings",
-            onSelect: onOpenSettings,
+            onSelect: () => router.push("/dashboard/settings"),
+          },
+          {
+            label: "点数与订单",
+            icon: "chart",
+            onSelect: () => router.push("/dashboard/settings"),
           },
           {
             label: "用户服务条款",
             icon: "help",
+            divider: true,
             onSelect: () => router.push("/terms"),
           },
           {
@@ -211,6 +199,13 @@ function SidebarFoot({
             onSelect: () => router.push("/privacy"),
           },
           { label: "导出我的数据", icon: "download", onSelect: exportData },
+          {
+            label: "切换主题",
+            icon: "sparkles",
+            hint: `下一套：${nextTheme.name}`,
+            divider: true,
+            onSelect: cycleTheme,
+          },
           {
             label: "退出登录",
             icon: "arrowRight",
@@ -233,12 +228,11 @@ function SidebarFoot({
             label: "重置演示数据",
             icon: "refresh",
             danger: true,
+            divider: true,
             onSelect: () => setResetOpen(true),
           },
         ]}
       />
-
-      <p className="demo-note">已连接 Neon · 数据实时同步</p>
 
       <ConfirmDialog
         open={resetOpen}
@@ -252,7 +246,7 @@ function SidebarFoot({
           toast({ title: "演示数据已重置", tone: "positive" });
         }}
       />
-    </div>
+    </>
   );
 }
 
@@ -262,19 +256,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { state, markAllNotificationsRead, markNotificationRead } = useWorkspace();
 
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  useEffect(() => {
-    const saved = readJsonPref<boolean>("shell.sidebar.collapsed.v1", false);
-    setSidebarCollapsed(Boolean(saved));
-  }, []);
+  // 侧栏收展偏好存 localStorage：用外部 store 订阅，避免 effect 里 setState
+  // （服务端/水合快照固定 false，客户端挂载后读真实值）。
+  const sidebarCollapsed = useSyncExternalStore(
+    subscribePrefChange,
+    () => Boolean(readJsonPref<boolean>("shell.sidebar.collapsed.v1", false)),
+    () => false,
+  );
 
   function toggleSidebar() {
-    setSidebarCollapsed((prev) => {
-      const next = !prev;
-      writeJsonPref("shell.sidebar.collapsed.v1", next);
-      return next;
-    });
+    writeJsonPref("shell.sidebar.collapsed.v1", !sidebarCollapsed);
+    window.dispatchEvent(new Event(PREF_EVENT));
   }
   const [notifOpen, setNotifOpen] = useState(false);
   const [cmdkOpen, setCmdkOpen] = useState(false);
@@ -284,6 +277,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const cmdkInputRef = useRef<HTMLInputElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLElement>(null);
 
   const unread = unreadNotifications(state.notifications);
   const pageLabel = PAGE_LABELS[pathname] ?? "工作台";
@@ -320,6 +314,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       document.body.style.overflow = "";
     };
   }, [mobileOpen]);
+
+  // 主面板是独立滚动容器，Next 只管理 window 滚动：路由切换时手动回到顶部。
+  useEffect(() => {
+    sheetRef.current?.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname]);
 
   function openCmdk() {
     setCmdkOpen(true);
@@ -445,7 +444,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="app-brand-row">
         <Link href="/dashboard" className="app-brand" aria-label="简历编辑器工作台">
           <span className="app-brand-mark">
-            <ProductMark />
+            <BrandMark size={30} variant="duo" />
           </span>
           <span className="app-brand-text">
             <span className="app-brand-name" style={{ display: "block" }}>
@@ -469,7 +468,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <NavLinks pathname={pathname} />
-        <SidebarFoot onOpenSettings={() => router.push("/dashboard/settings")} />
+        <SidebarRecents />
       </aside>
 
       <div className="app-main">
@@ -511,6 +510,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
 
           <div className="topbar-actions">
+            <CreditIsland />
             <div ref={notifRef} className="menu-wrap">
               <span style={{ position: "relative", display: "inline-flex" }}>
                 <IconBtn
@@ -593,39 +593,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ) : null}
             </div>
 
-            <Menu
-              align="right"
-              trigger={
-                <button type="button" className="btn-icon" aria-label="账户菜单">
-                  <span className="avatar avatar-sm">
-                    {state.user.name.slice(0, 1)}
-                  </span>
-                </button>
-              }
-              items={[
-                {
-                  label: "账号设置",
-                  icon: "settings",
-                  onSelect: () => router.push("/dashboard/settings"),
-                },
-                {
-                  label: "点数与订单",
-                  icon: "chart",
-                  onSelect: () => router.push("/dashboard/settings"),
-                },
-                {
-                  label: "返回官网",
-                  icon: "external",
-                  onSelect: () => {
-                    router.push("/");
-                  },
-                },
-              ]}
-            />
+            <AccountMenu />
           </div>
         </header>
 
-        <main className="app-sheet">
+        <main className="app-sheet" ref={sheetRef}>
           <div className="app-content">{children}</div>
         </main>
       </div>
@@ -645,7 +617,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => setMobileOpen(false)}
               >
                 <span className="app-brand-mark">
-                  <ProductMark size={26} />
+                  <BrandMark size={26} variant="duo" />
                 </span>
                 <span className="app-brand-text">
                   <span className="app-brand-name" style={{ display: "block" }}>
@@ -666,16 +638,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <NavLinks pathname={pathname} onNavigate={() => setMobileOpen(false)} />
             <div style={{ marginTop: "auto", paddingTop: 16 }}>
-              <div style={{ marginBottom: 12 }}>
-                <CreditMiniCard
-                  onOpen={() => {
-                    setMobileOpen(false);
-                    router.push("/dashboard/settings");
-                  }}
-                />
-              </div>
               <div className="user-row" style={{ cursor: "default" }}>
-                <span className="avatar">{state.user.name.slice(0, 1)}</span>
+                <UserAvatar />
                 <span className="user-row-text">
                   <span className="user-row-name">{state.user.name}</span>
                   <span className="user-row-mail">{state.user.email}</span>
@@ -717,9 +681,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 退出登录 <Icon name="arrowRight" size={12} />
               </button>
-              <p className="demo-note" style={{ marginTop: 8 }}>
-                已连接 Neon · 数据实时同步
-              </p>
             </div>
           </aside>
         </>

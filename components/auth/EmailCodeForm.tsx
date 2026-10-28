@@ -89,7 +89,7 @@ export function EmailCodeForm({ redirectUrl }: { redirectUrl: string }) {
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="sign-in-email"
-          className="text-[12.5px] font-semibold text-[#26364b]"
+          className="text-[12.5px] font-semibold text-[var(--ui-text)]"
         >
           邮箱
         </label>
@@ -117,12 +117,12 @@ export function EmailCodeForm({ redirectUrl }: { redirectUrl: string }) {
             onClick={handleSend}
             disabled={sendDisabled}
             aria-live="off"
-            className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-lg bg-[#1A6BD6]/10 px-3 py-2 text-[12.5px] font-semibold whitespace-nowrap text-[#1A6BD6] transition hover:bg-[#1A6BD6]/16 focus-visible:ring-4 focus-visible:ring-[#1A6BD6]/25 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-transparent disabled:text-[#8e9aa4]"
+            className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-lg bg-[color-mix(in_srgb,var(--ui-accent)_10%,transparent)] px-3 py-2 text-[12.5px] font-semibold whitespace-nowrap text-[var(--ui-accent)] transition hover:bg-[color-mix(in_srgb,var(--ui-accent)_18%,transparent)] focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--ui-accent)_25%,transparent)] focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-transparent disabled:text-[var(--ui-faint)]"
           >
             {sendLabel}
           </button>
         </div>
-        <p className="text-[11.5px] leading-relaxed text-[#7d8ba0]">
+        <p className="text-[11.5px] leading-relaxed text-[var(--ui-faint)]">
           验证码 10 分钟内有效；未注册的邮箱会自动创建账号，无需设置密码。
         </p>
       </div>
@@ -130,7 +130,7 @@ export function EmailCodeForm({ redirectUrl }: { redirectUrl: string }) {
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="sign-in-code"
-          className="text-[12.5px] font-semibold text-[#26364b]"
+          className="text-[12.5px] font-semibold text-[var(--ui-text)]"
         >
           验证码
         </label>
@@ -158,7 +158,7 @@ export function EmailCodeForm({ redirectUrl }: { redirectUrl: string }) {
             id="sign-in-code-hint"
             role="status"
             aria-live="polite"
-            className="text-[11.5px] leading-relaxed text-[#1A6BD6]"
+            className="text-[11.5px] leading-relaxed text-[var(--ui-accent)]"
           >
             验证码已发送至 {sentTo}，请查收（也请检查垃圾邮件）。
           </p>

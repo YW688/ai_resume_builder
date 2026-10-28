@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import "./themes.css";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 /**
  * Geist 改为本地字体：构建期不依赖 fonts.googleapis.com（离线/国内网络也能 build），
@@ -33,10 +35,26 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * 首帧主题脚本：在 React 水合前把 data-theme 写到 <html>，避免闪白/闪黑。
+ * 逻辑与 components/theme/ThemeProvider 保持一致（mist / ember / midnight）。
+ * 默认主题固定为「晴岚」，不跟随系统深浅色，避免首次进入被误判成深色。
+ */
+const THEME_BOOT = `(function(){try{var ok=['mist','ember','midnight'];var t=localStorage.getItem('app.theme.v1');if(ok.indexOf(t)<0){t='mist';}var r=document.documentElement;r.dataset.theme=t;r.style.colorScheme=t==='midnight'?'dark':'light';}catch(e){document.documentElement.dataset.theme='mist';}})();`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="zh-CN" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html
+      lang="zh-CN"
+      // data-theme 由 THEME_BOOT 在首帧前写入，与服务端默认值可能不同：
+      // 这是预期的，用 suppressHydrationWarning 忽略该属性差异。
+      suppressHydrationWarning
+      className={`${geistSans.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col">
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

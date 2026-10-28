@@ -1094,7 +1094,7 @@
   gap: 6px;
   min-height: 120px;
   padding: 12px;
-  border: 1px solid rgba(196, 36, 42, 0.24);
+  border: 1px solid color-mix(in srgb, var(--ui-negative) 30%, transparent);
   border-radius: 8px;
   background: var(--ui-negative-bg);
 }
@@ -1819,7 +1819,7 @@ body.ed-resizing .ed-splitter::after {
   background: var(--ui-surface);
   color: var(--ui-muted);
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(14, 27, 42, 0.08);
+  box-shadow: var(--ui-shadow-paper);
   transition: background-color 140ms var(--ui-ease), color 140ms var(--ui-ease);
 }
 
@@ -1960,8 +1960,8 @@ body.ed-resizing .ed-splitter::after {
   width: 16px;
   height: 16px;
   border-radius: 999px;
-  background: var(--swatch, #ffe9b0);
-  border: 1px solid rgba(14, 27, 42, 0.16);
+  background: var(--swatch, var(--ui-sun));
+  border: 1px solid var(--ui-control);
   transition: transform 120ms var(--ui-ease);
 }
 
@@ -1998,7 +1998,7 @@ body.ed-resizing .ed-splitter::after {
   display: flex;
   flex-direction: column;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, var(--ui-glass-line), transparent),
     var(--ui-chrome-2);
 }
 
@@ -2017,7 +2017,7 @@ body.ed-resizing .ed-splitter::after {
   position: relative;
   background: #fff;
   border: 1px solid var(--ui-border);
-  box-shadow: 0 18px 50px rgba(14, 27, 42, 0.18);
+  box-shadow: var(--ui-shadow-sheet);
   overflow: hidden;
 }
 

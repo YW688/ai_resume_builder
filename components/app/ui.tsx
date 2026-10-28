@@ -442,7 +442,11 @@ export type MenuItem = {
 export type MenuProps = {
   trigger: ReactElement;
   items: MenuItem[];
+  /** 菜单顶部自定义头（账户菜单用于显示头像 + 姓名 + 邮箱）。 */
+  header?: React.ReactNode;
   align?: "left" | "right";
+  /** 从触发器上方展开（用于贴底的账户菜单，避免被视口/容器裁切）。 */
+  placement?: "bottom" | "top";
   className?: string;
 };
 
@@ -452,7 +456,14 @@ type MenuTriggerProps = {
   onClick?: (event: ReactMouseEvent) => void;
 };
 
-export function Menu({ trigger, items, align = "left", className }: MenuProps) {
+export function Menu({
+  trigger,
+  items,
+  header,
+  align = "left",
+  placement = "bottom",
+  className,
+}: MenuProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLSpanElement | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
@@ -519,9 +530,14 @@ export function Menu({ trigger, items, align = "left", className }: MenuProps) {
       {open ? (
         <div
           ref={popRef}
-          className={cx("menu-pop", align === "right" && "align-right")}
+          className={cx(
+            "menu-pop",
+            align === "right" && "align-right",
+            placement === "top" && "align-top",
+          )}
           role="menu"
         >
+          {header ? <div className="menu-head">{header}</div> : null}
           {items.map((item, index) => (
             <Fragment key={`${item.label}-${index}`}>
               {item.divider ? <div className="menu-sep" role="separator" /> : null}
