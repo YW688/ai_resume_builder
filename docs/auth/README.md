@@ -113,9 +113,36 @@ npm run build
 node scripts/auth/e2e-auth.mjs   # 原密码登录全流程回归
 ```
 
-## 6. 生产上线清单
+## 6. 临时公网演示（cloudflared quick tunnel）
 
-- [ ] Neon Auth → Trusted domains 加入生产域名（当前仅有 `http://127.0.0.1:3000`）。
+`cloudflared tunnel --url http://localhost:3000` 生成的 `*.trycloudflare.com` 每次重启都会变。
+**Neon Auth 只接受 Trusted domains 白名单内的 Origin**，未登记的域名会返回
+`403 INVALID_ORIGIN`，表现为：隧道首页能打开，但登录时报「登录失败，请稍后重试」，
+`/dashboard` 又被踢回 `/sign-in`。旧域名在 cloudflared 断线后还会变成 **530**。
+
+用下面的命令代替裸 `cloudflared`：它会拉起隧道、解析新域名、自动写入 Neon Auth
+Trusted domains，并清掉上一条 `*.trycloudflare.com` 记录（可用 `--keep-old` 保留）。
+
+```bash
+npm run tunnel                 # 默认指向 http://localhost:3000
+npm run tunnel -- --keep-old   # 保留历史 trycloudflare 白名单记录
+TUNNEL_URL=http://localhost:3100 npm run tunnel   # 指向其它端口
+```
+
+> 已知限制：quick tunnel 无可用性保证，网络抖动断线后会返回 530，重新 `npm run tunnel`
+> 即可（会拿到新域名并自动重新登记）。需要**固定域名**做正式演示时，应改用 Cloudflare
+> Named Tunnel + 自有域名，或直接部署到生产域名并把它加进 Trusted domains。
+
+手工兜底（不加脚本时）：Neon Console → 项目 → **Settings → Better Auth → Trusted domains**
+加入当前 `https://<xxx>.trycloudflare.com`；或调用 API
+`POST /projects/{project_id}/branches/{branch_id}/auth/domains`
+（body：`{"domain":"https://…","auth_provider":"better_auth"}`）。
+已实测：登记后隧道内「密码登录 → /dashboard → 刷新会话保持」全链路通过（2026-10-29）。
+
+## 7. 生产上线清单
+
+- [ ] Neon Auth → Trusted domains 加入生产域名（当前仅有 `http://127.0.0.1:3000`；
+      临时演示域名用 §6 的 `npm run tunnel` 自动登记）。
 - [ ] 生产环境关闭 Allow Localhost（Settings → Better Auth）。注意：当前本地开发也指向
       `production` 分支，建议先拆出 dev 分支再关闭 localhost，否则本地无法登录。
 - [x] 应用名、发件人名称、自定义 SMTP 配置。
