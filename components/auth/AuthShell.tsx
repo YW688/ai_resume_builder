@@ -129,7 +129,9 @@ export function AuthShell({
               <span className="auth-badge">PDF 导出免费</span>
             </div>
 
-            <p className="auth-trust">密码由 Neon Auth 托管，本应用不存储明文密码。</p>
+            <p className="auth-trust">
+              登录与验证码由 Neon Auth 托管，本应用不存储明文密码或验证码。
+            </p>
           </div>
         </aside>
 

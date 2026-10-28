@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { AuthShell } from "@/components/auth/AuthShell";
-import { SignInForm } from "@/components/auth/SignInForm";
+import { SignInPanel } from "@/components/auth/SignInPanel";
 import { readRedirect } from "@/lib/auth/redirect";
 import { auth } from "@/lib/auth/server";
 
@@ -18,7 +18,7 @@ async function SignInContent({ searchParams }: { searchParams: Promise<SearchPar
   const { data: session } = await auth.getSession();
   if (session?.user) redirect(redirectTo);
 
-  return <SignInForm redirectUrl={redirectTo} />;
+  return <SignInPanel redirectUrl={redirectTo} />;
 }
 
 export default function SignInPage({
@@ -29,22 +29,29 @@ export default function SignInPage({
   return (
     <AuthShell
       title="登录"
-      subtitle="使用邮箱和密码，继续你的求职工作台。"
+      subtitle="用邮箱验证码登录；未注册的邮箱会自动创建账号，也可以改用密码登录。"
       footer={
         <p className="leading-relaxed">
-          注册后简历、目标岗位与投递记录都会保存在账号下。继续即表示你同意
-          <Link href="/terms" className="mx-0.5 text-[#1A6BD6] hover:underline">
+          登录后简历、目标岗位与投递记录都会保存在账号下。验证码与账号由 Neon Auth
+          托管发送和保存，本应用不存储你的邮箱密码。继续即表示你同意
+           <Link
+            href="/terms"
+            className="mx-0.5 whitespace-nowrap text-[#1A6BD6] hover:underline"
+          >
             《用户服务条款》
           </Link>
           与
-          <Link href="/privacy" className="mx-0.5 text-[#1A6BD6] hover:underline">
+          <Link
+            href="/privacy"
+            className="mx-0.5 whitespace-nowrap text-[#1A6BD6] hover:underline"
+          >
             《隐私政策》
           </Link>
           。
         </p>
       }
     >
-      <Suspense fallback={<SignInForm redirectUrl="/dashboard" />}>
+      <Suspense fallback={<SignInPanel redirectUrl="/dashboard" />}>
         <SignInContent searchParams={searchParams} />
       </Suspense>
     </AuthShell>

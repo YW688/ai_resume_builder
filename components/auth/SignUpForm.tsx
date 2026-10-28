@@ -83,6 +83,16 @@ export function SignUpForm({ redirectUrl }: { redirectUrl: string }) {
           直接登录
         </Link>
       </p>
+
+      <p className="text-center text-[12.5px] leading-relaxed text-[#7d8ba0]">
+        不想设置密码？
+        <Link
+          href={`/sign-in${redirectUrl !== "/dashboard" ? `?redirect_url=${encodeURIComponent(redirectUrl)}` : ""}`}
+          className="ml-1 font-medium text-[#1A6BD6] hover:underline"
+        >
+          用邮箱验证码登录 / 注册
+        </Link>
+      </p>
     </form>
   );
 }

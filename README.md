@@ -24,6 +24,15 @@
 - 定价与利润测算：[`docs/pricing/README.md`](docs/pricing/README.md)
 - 点数系统实现说明：[`docs/credits/README.md`](docs/credits/README.md)
 
+## 登录方式（2026-10 起）
+
+- **邮箱验证码登录（默认）**：输入任意邮箱 → 收 6 位验证码 → 登录；未注册邮箱自动创建账号。
+- **邮箱 + 密码登录**：保留为备选 Tab，兼容已有账号。
+- 认证与验证码由 **Neon Auth（Managed Better Auth）** 托管，用户/会话存于 Neon Postgres 的
+  `neon_auth` schema；应用侧不保存明文密码或验证码。
+- 发件已在 Neon 配置**自定义 SMTP**（QQ 邮箱 / Foxmail 别名），步骤与隐私边界见
+  [`docs/auth/README.md`](docs/auth/README.md)。
+
 ## 本地运行
 
 ```bash
@@ -50,6 +59,10 @@ npm run db:migrate   # 应用迁移
 npx tsx scripts/verify/credits-selftest.mts          # 核心逻辑自测（真实库，自动清理）
 node scripts/verify/credits-e2e.mjs                  # 浏览器 E2E（沙箱支付 + AI_MOCK）
 node scripts/pricing/calc.mjs                        # 定价 / 单位经济重算
+
+# 登录（邮箱验证码）验证
+node scripts/auth/e2e-otp.mjs                        # HTTP 链路 + 一次性邮箱真实收码
+node scripts/auth/e2e-otp-ui.mjs                     # 浏览器点击级 E2E（含截图）
 ```
 
 ## 目录速记

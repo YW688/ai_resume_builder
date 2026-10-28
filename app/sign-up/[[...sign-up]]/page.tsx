@@ -33,11 +33,17 @@ export default function SignUpPage({
       footer={
         <p className="leading-relaxed">
           注册即表示你已阅读并同意
-          <Link href="/terms" className="mx-0.5 text-[#1A6BD6] hover:underline">
+           <Link
+            href="/terms"
+            className="mx-0.5 whitespace-nowrap text-[#1A6BD6] hover:underline"
+          >
             《用户服务条款》
           </Link>
           与
-          <Link href="/privacy" className="mx-0.5 text-[#1A6BD6] hover:underline">
+          <Link
+            href="/privacy"
+            className="mx-0.5 whitespace-nowrap text-[#1A6BD6] hover:underline"
+          >
             《隐私政策》
           </Link>
           ，并了解你的个人信息可能按隐私政策传输至中国境外处理。密码由 Neon Auth
