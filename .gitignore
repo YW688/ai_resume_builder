@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+Thumbs.db
 
 # debug
 npm-debug.log*
@@ -30,8 +31,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files —— 只保留不含密钥的模板
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -53,3 +55,22 @@ next-env.d.ts
 
 # Windows 沙箱 ACL 修复报告（不提交）
 /.acl-reports/
+
+# ===== 本地素材 / 工具产物（体积大或含第三方参考，不入库）=====
+# Hero 视觉的生成母版、参考视频、截图（版权与体积原因不入库；公开站只用 public/ 下的成品）
+/design/
+/StudyTrack/
+/.taste-skill/
+/.agents/
+/.codex/
+/demo-readiness/
+
+# ===== 内部资料（成本台账、法务评审笔记、个人草稿，不入库）=====
+/docs/qa/
+/docs/ledger.csv
+/docs/PROJECT_RETRO_2026-10-20.md
+/legal-docs/reviewer-notes.md
+/服务与隐私条款
+/Prompt/
+# 第三方技能副本（来源与许可未随仓库分发；保留 cost-guard / hero-visual 两个自有技能）
+/.claude/skills/neon*/

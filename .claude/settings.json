@@ -15,9 +15,8 @@
     "API_TIMEOUT_MS": "600000"
   },
   "permissions": {
-    "defaultMode": "acceptEdits",
+    "defaultMode": "default",
     "allow": [
-      "Bash(node:*)",
       "Bash(npm run build)",
       "Bash(npm run dev)",
       "Bash(npm run lint)",
@@ -25,11 +24,7 @@
       "Bash(git status)",
       "Bash(git diff:*)",
       "Bash(ffmpeg:*)",
-      "Bash(ffprobe:*)",
-      "Bash(pwsh:*)",
-      "Bash(powershell:*)",
-      "Bash(node scripts/hero/:*)",
-      "Bash(scripts/hero/:*)"
+      "Bash(ffprobe:*)"
     ]
   }
 }

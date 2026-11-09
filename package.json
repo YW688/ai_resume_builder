@@ -1,7 +1,17 @@
 {
-  "name": "ai_resume_builder",
+  "name": "ai-resume-builder",
   "version": "0.1.0",
+  "description": "面向中文求职者的 AI 简历编辑器：JD 对齐润色、A4 PDF 导出、投递追踪（Next.js + Neon + DeepSeek）。",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YW688/ai_resume_builder.git"
+  },
+  "homepage": "https://github.com/YW688/ai_resume_builder#readme",
+  "engines": {
+    "node": ">=20.11"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

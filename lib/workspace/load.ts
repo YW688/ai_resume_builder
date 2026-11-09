@@ -34,7 +34,7 @@ import type {
   WorkspaceState,
 } from "@/lib/mock/types";
 import { getCreditsState } from "@/lib/credits/server";
-import { seedDemoWorkspace } from "./seed";
+import { isDemoModeEnabled, seedDemoWorkspace } from "./seed";
 
 const EPOCH = new Date(0).toISOString();
 
@@ -131,40 +131,59 @@ export async function loadWorkspace(userId: string): Promise<WorkspaceState> {
   if (!user) throw new Error("UNAUTHORIZED: session 已失效，无法加载工作区");
 
   if (!existingPreferences[0]) {
-    await seedDemoWorkspace(userId);
+    // 演示 seed 只在非生产或显式 DEMO_MODE=1 时写入：生产环境的新用户不得
+    // 获得 paid 套餐、18 点余额或伪造的已支付订单，必须保持 free / 0 点。
+    const demoSeed = isDemoModeEnabled();
+    if (demoSeed) await seedDemoWorkspace(userId);
+
     // 种子只补空字段，真实用户填过的不覆盖；returning 省掉一次回查。
     const updated = await db
       .update(users)
       .set({
-        name: user.name || initialWorkspace.user.name,
-        phone: user.phone ?? initialWorkspace.user.phone,
-        city: user.city ?? initialWorkspace.user.city,
-        targetRole: user.targetRole ?? initialWorkspace.user.targetRole,
-        joinedAt: user.joinedAt ?? new Date(initialWorkspace.user.joinedAt),
-        plan: user.plan === "free" ? "paid" : user.plan,
-        planName: user.planName ?? initialWorkspace.plan.name,
-        planStartedAt:
-          user.planStartedAt ?? new Date(initialWorkspace.plan.startedAt),
-        planExpiresAt:
-          user.planExpiresAt ?? new Date(initialWorkspace.plan.expiresAt),
-        planPriceFen: user.planPriceFen ?? initialWorkspace.plan.priceFen,
-        autoRenew: initialWorkspace.plan.autoRenew,
-        // 演示账号给一段点数余额，方便直接体验“生成整份简历（2 点）”等流程。
-        creditsBalance:
-          user.creditsBalance > 0
-            ? user.creditsBalance
-            : initialWorkspace.credits.balance,
-        creditsExpireAt:
-          user.creditsExpireAt ??
-          (initialWorkspace.credits.expiresAt
-            ? new Date(initialWorkspace.credits.expiresAt)
-            : null),
+        name: user.name || (demoSeed ? initialWorkspace.user.name : session?.name ?? ""),
+        phone: user.phone ?? (demoSeed ? initialWorkspace.user.phone : null),
+        city: user.city ?? (demoSeed ? initialWorkspace.user.city : null),
+        targetRole:
+          user.targetRole ?? (demoSeed ? initialWorkspace.user.targetRole : null),
+        joinedAt:
+          user.joinedAt ??
+          (demoSeed
+            ? new Date(initialWorkspace.user.joinedAt)
+            : new Date()),
+        // 仅演示环境填充套餐与点数；生产环境保留 users 行的 free / 0 点默认值。
+        ...(demoSeed
+          ? {
+              plan: user.plan === "free" ? "paid" : user.plan,
+              planName: user.planName ?? initialWorkspace.plan.name,
+              planStartedAt:
+                user.planStartedAt ?? new Date(initialWorkspace.plan.startedAt),
+              planExpiresAt:
+                user.planExpiresAt ?? new Date(initialWorkspace.plan.expiresAt),
+              planPriceFen: user.planPriceFen ?? initialWorkspace.plan.priceFen,
+              autoRenew: initialWorkspace.plan.autoRenew,
+              // 演示账号给一段点数余额，方便直接体验“生成整份简历（2 点）”等流程。
+              creditsBalance:
+                user.creditsBalance > 0
+                  ? user.creditsBalance
+                  : initialWorkspace.credits.balance,
+              creditsExpireAt:
+                user.creditsExpireAt ??
+                (initialWorkspace.credits.expiresAt
+                  ? new Date(initialWorkspace.credits.expiresAt)
+                  : null),
+            }
+          : {}),
         dailyCreditsUsed: user.dailyCreditsUsed,
         dailyCreditsDate: user.dailyCreditsDate,
       })
       .where(eq(users.id, userId))
       .returning();
     user = updated[0] ?? user;
+
+    // 生产首登没有演示 preferences 行：补一条空偏好，避免每次加载都重复进入首登分支。
+    if (!demoSeed) {
+      await db.insert(preferences).values({ userId }).onConflictDoNothing();
+    }
   }
 
   const [jobRows, resumeRows, applicationRows, notificationRows, orderRows, preferenceRows, credits] =

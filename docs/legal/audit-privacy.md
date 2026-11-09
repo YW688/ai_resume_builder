@@ -1,6 +1,6 @@
 # 隐私事实审计报告（代码证据版）
 
-- **审计对象**：.（中文 AI 简历编辑器，Next.js 16 + Neon + DeepSeek + 点数计费）
+- **审计对象**：`<repo-root>`（中文 AI 简历编辑器，Next.js 16 + Neon + DeepSeek + 点数计费）
 - **审计时间**：2026-10-25
 - **审计方式**：只读静态审计（读源码、schema、migrations、docs、`.env.example` 变量名、构建产物文件名）；未读取 `.env.local` / `.env.neon-cli` / `.neon` 中任何值；未执行写库、调用 AI、调用支付或产生费用的命令。
 - **唯一写入文件**：`docs/legal/audit-privacy.md`（本文件）。

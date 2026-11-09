@@ -94,7 +94,7 @@ function ProfilePanel() {
     if (!form.name.trim()) nextErrors.name = "请填写姓名";
     if (!form.email.trim()) nextErrors.email = "请填写邮箱";
     else if (!EMAIL_PATTERN.test(form.email.trim())) {
-      nextErrors.email = "邮箱格式不正确，例如 linxiao@example.com";
+      nextErrors.email = "邮箱格式不正确，例如 you@example.com";
     }
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -1087,6 +1087,8 @@ function DataPanel() {
   const [resetOpen, setResetOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // 演示数据重置只在非生产环境提供，生产环境隐藏入口（服务端也会拒绝）。
+  const demoEnabled = process.env.NODE_ENV !== "production";
 
   function handleReset() {
     resetDemo();
@@ -1157,23 +1159,25 @@ function DataPanel() {
               </div>
             </div>
 
-            <div className="settings-row">
-              <div>
-                <div className="settings-row-title">重置演示数据</div>
-                <div className="settings-row-desc">
-                  清除本机的所有修改，恢复最初的示例数据（会先二次确认）。
+            {demoEnabled ? (
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row-title">重置演示数据</div>
+                  <div className="settings-row-desc">
+                    清除本机的所有修改，恢复最初的示例数据（会先二次确认）。
+                  </div>
+                </div>
+                <div className="settings-row-action">
+                  <Btn
+                    variant="secondary"
+                    icon="refresh"
+                    onClick={() => setResetOpen(true)}
+                  >
+                    重置数据
+                  </Btn>
                 </div>
               </div>
-              <div className="settings-row-action">
-                <Btn
-                  variant="secondary"
-                  icon="refresh"
-                  onClick={() => setResetOpen(true)}
-                >
-                  重置数据
-                </Btn>
-              </div>
-            </div>
+            ) : null}
 
             <div className="settings-row">
               <div>
@@ -1236,15 +1240,17 @@ function DataPanel() {
         </section>
       </div>
 
-      <ConfirmDialog
-        open={resetOpen}
-        onClose={() => setResetOpen(false)}
-        onConfirm={handleReset}
-        title="重置演示数据？"
-        description="当前工作台的所有修改会被清除，恢复为最初的示例简历、目标岗位和投递记录。"
-        confirmLabel="重置数据"
-        tone="danger"
-      />
+      {demoEnabled ? (
+        <ConfirmDialog
+          open={resetOpen}
+          onClose={() => setResetOpen(false)}
+          onConfirm={handleReset}
+          title="重置演示数据？"
+          description="当前工作台的所有修改会被清除，恢复为最初的示例简历、目标岗位和投递记录。"
+          confirmLabel="重置数据"
+          tone="danger"
+        />
+      ) : null}
 
       <ConfirmDialog
         open={deleteOpen}

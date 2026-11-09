@@ -16,7 +16,6 @@ import type {
   Job,
   Order,
   Preferences,
-  Plan,
   Resume,
   ToastInput,
   User,
@@ -36,7 +35,6 @@ import {
   markNotificationReadAction,
   purchaseCreditsAction,
   recordUsageAction,
-  renewPlanAction,
   resetDemoAction,
   saveApplicationAction,
   saveJobAction,
@@ -82,7 +80,6 @@ type WorkspaceContextValue = {
   updatePreferences: (patch: Partial<Preferences>) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
-  renewPlan: () => void;
   /** 购买点数套餐；成功后把余额与订单同步到本地状态。 */
   purchaseCredits: (packageId: string) => Promise<{
     ok: boolean;
@@ -499,42 +496,6 @@ export function WorkspaceProvider({
     persist(markAllNotificationsReadAction(), "通知状态更新失败。");
   }, [commitState, persist]);
 
-  const renewPlan = useCallback(() => {
-    const prev = stateRef.current;
-    const base = Math.max(new Date(prev.plan.expiresAt).getTime(), Date.now());
-    const expiresAt = new Date(base + 30 * 24 * 60 * 60 * 1000).toISOString();
-    const optimisticPlan: Plan = {
-      ...prev.plan,
-      expiresAt,
-      orders: [
-        {
-          id: newId(),
-          at: nowIso(),
-          amountFen: prev.plan.priceFen,
-          label: "30 天通行证",
-          status: "paid",
-        },
-        ...prev.plan.orders,
-      ],
-    };
-    commitState({ ...prev, plan: optimisticPlan });
-    void (async () => {
-      try {
-        const result = await renewPlanAction();
-        if (!result.ok) {
-          const failure = result as { error?: string; message?: string };
-          throw new Error(
-            failure.message || failure.error || "续费失败，已恢复服务器数据。",
-          );
-        }
-        // 以服务端返回的套餐为准（到期日/订单由数据库计算）。
-        commitState({ ...stateRef.current, plan: result.data });
-      } catch (error) {
-        reportActionError(error, "续费失败，已恢复服务器数据。");
-      }
-    })();
-  }, [commitState, reportActionError]);
-
   const recordAiRewrite = useCallback(() => {
     const prev = stateRef.current;
     commitState({
@@ -687,7 +648,6 @@ export function WorkspaceProvider({
       updatePreferences,
       markNotificationRead,
       markAllNotificationsRead,
-      renewPlan,
       purchaseCredits,
       applyCredits,
       recordAiRewrite,
@@ -717,7 +677,6 @@ export function WorkspaceProvider({
       updatePreferences,
       markNotificationRead,
       markAllNotificationsRead,
-      renewPlan,
       purchaseCredits,
       applyCredits,
       recordAiRewrite,

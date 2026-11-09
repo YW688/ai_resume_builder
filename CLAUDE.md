@@ -101,7 +101,7 @@ npx tsc --noEmit                                  # 类型检查
 
 ## 8. 已知限制（2026-10-20 核实）
 
-- **ffmpeg 已可用**（winget 安装：`C:\Users\<user>\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_*\ffmpeg-9.0.2-full_build\bin`）：转码/抽帧/验收跑脚本时直接用；**逐镜头剪辑主路径仍推荐剪映 / Premiere / DaVinci**（导出 H.264 1080p 30fps、去音轨）。
+- **ffmpeg 已可用**（推荐 `winget install Gyan.FFmpeg`，安装后把 `<ffmpeg-bin>` 加入 PATH）：转码/抽帧/验收跑脚本时直接用；**逐镜头剪辑主路径仍推荐剪映 / Premiere / DaVinci**（导出 H.264 1080p 30fps、去音轨）。
 - 生成是**按次计费**的云 API：先各跑 1 张 / 1 段试水，确认风格与成本后再批量；失败重试每次只改一个变量。
 - 生成有概率性：同一 seed 也不保证完全一致；一致性靠「角色卡 + 参考图（I2I）+ 固定提示词」，不追求像素级复刻。
 - 旧主题产物（`public/hero/*`、`public/art/*` 旧图）在新资产验收通过前**不删除**，S6 时再切换引用。

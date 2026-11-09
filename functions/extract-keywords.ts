@@ -212,7 +212,8 @@ async function verifyAndGetUserId(token: string): Promise<string | typeof UNVERI
   }
 
   const expectedIssuer = new URL(authBaseUrl).origin;
-  if (payload.iss && payload.iss !== expectedIssuer) return UNVERIFIED;
+  // iss 必须存在且与 Neon Auth 的 issuer 完全一致；缺失 iss 也拒绝。
+  if (!payload.iss || payload.iss !== expectedIssuer) return UNVERIFIED;
   if (typeof payload.exp !== "number" || payload.exp * 1000 <= Date.now()) return UNVERIFIED;
   if (typeof payload.nbf === "number" && payload.nbf * 1000 > Date.now()) return UNVERIFIED;
   if (!payload.sub) return UNVERIFIED;
@@ -348,12 +349,33 @@ export function extractKeywords(text: string, limit: number): ExtractResult {
 const SERVICE = "extract-keywords";
 const VERSION = "1.0.0";
 
+/** CORS 公共头（不含 allow-origin）：origin 必须命中 Neon Auth 的 origin 白名单。 */
 const CORS_HEADERS: Record<string, string> = {
-  "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, OPTIONS",
   "access-control-allow-headers": "authorization, content-type",
   "access-control-max-age": "86400",
 };
+
+/** 依据 NEON_AUTH_BASE_URL 计算允许的浏览器 Origin；未配置或不匹配返回 null。 */
+function allowedCorsOrigin(request: Request): string | null {
+  const origin = request.headers.get("origin");
+  if (!origin) return null;
+  const authBaseUrl = env("NEON_AUTH_BASE_URL");
+  if (!authBaseUrl) return null;
+  try {
+    return origin === new URL(authBaseUrl).origin ? origin : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 仅当 Origin 命中白名单时返回 ACAO；无匹配则不返回该头（浏览器按跨域拒绝）。 */
+function withCors(response: Response, request: Request): Response {
+  const origin = allowedCorsOrigin(request);
+  response.headers.set("vary", "Origin");
+  if (origin) response.headers.set("access-control-allow-origin", origin);
+  return response;
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -407,51 +429,85 @@ export default {
     const path = url.pathname.replace(/\/+$/, "") || "/";
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: CORS_HEADERS });
+      return withCors(
+        new Response(null, { status: 204, headers: CORS_HEADERS }),
+        request,
+      );
     }
 
     // 公开健康检查：不返回用户数据，无需鉴权。
     if (request.method === "GET" && (path === "/health" || path === "/")) {
-      return json({ ok: true, service: SERVICE, version: VERSION, time: new Date().toISOString() });
+      return withCors(
+        json({ ok: true, service: SERVICE, version: VERSION, time: new Date().toISOString() }),
+        request,
+      );
     }
 
     if (request.method !== "POST" && request.method !== "GET") {
-      return json({ ok: false, error: "Method Not Allowed" }, 405);
+      return withCors(
+        json({ ok: false, error: "Method Not Allowed" }, 405),
+        request,
+      );
     }
     if (request.method === "GET") {
-      return json({ ok: false, error: "Use POST with a job description body" }, 405);
+      return withCors(
+        json({ ok: false, error: "Use POST with a job description body" }, 405),
+        request,
+      );
     }
 
     // 业务接口必须带合法的 Neon Auth JWT。
     const token = bearerToken(request.headers.get("authorization"));
-    if (!token) return unauthorized("Missing bearer token");
+    if (!token) return withCors(unauthorized("Missing bearer token"), request);
 
     let userId: string | typeof UNVERIFIED;
     try {
       userId = await verifyAndGetUserId(token);
     } catch (error) {
       console.error("[extract-keywords] jwt verify error", error instanceof Error ? error.message : error);
-      return unauthorized("Invalid token");
+      return withCors(unauthorized("Invalid token"), request);
     }
-    if (userId === UNVERIFIED) return unauthorized("Invalid token");
+    if (userId === UNVERIFIED) {
+      return withCors(unauthorized("Invalid token"), request);
+    }
 
     const text = await readText(request);
-    if (text === null) return badRequest("Body must be JSON { text: string } or a plain-text job description");
-    if (text.trim().length === 0) return badRequest("Job description text is empty");
-    if (text.length > MAX_TEXT_LENGTH) return badRequest(`Job description exceeds ${MAX_TEXT_LENGTH} characters`);
+    if (text === null) {
+      return withCors(
+        badRequest("Body must be JSON { text: string } or a plain-text job description"),
+        request,
+      );
+    }
+    if (text.trim().length === 0) {
+      return withCors(badRequest("Job description text is empty"), request);
+    }
+    if (text.length > MAX_TEXT_LENGTH) {
+      return withCors(
+        badRequest(`Job description exceeds ${MAX_TEXT_LENGTH} characters`),
+        request,
+      );
+    }
 
     const limit = parseLimit(url.searchParams.get("limit") ?? undefined);
-    if (limit === null) return badRequest(`limit must be an integer between 1 and ${MAX_LIMIT}`);
+    if (limit === null) {
+      return withCors(
+        badRequest(`limit must be an integer between 1 and ${MAX_LIMIT}`),
+        request,
+      );
+    }
 
     const result = extractKeywords(text, limit);
 
-    return json({
-      ok: true,
-      // 调用者契约：可直接用于简历关键词匹配
-      keywords: result.keywords,
-      matches: result.matches,
-      stats: result.stats,
-    });
+    return withCors(
+      json({
+        ok: true,
+        // 调用者契约：可直接用于简历关键词匹配
+        keywords: result.keywords,
+        matches: result.matches,
+        stats: result.stats,
+      }),
+      request,
+    );
   },
 };
 

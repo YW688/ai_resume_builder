@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Icon, type IconName } from "@/components/app/icons";
-import { ConfirmDialog, IconBtn, Menu } from "@/components/app/ui";
+import { ConfirmDialog, IconBtn, Menu, type MenuItem } from "@/components/app/ui";
 import { NewResumeDialog } from "@/components/app/NewResumeDialog";
 import { CreditIsland } from "@/components/app/CreditIsland";
 import { UserAvatar } from "@/components/app/UserAvatar";
@@ -154,6 +154,8 @@ function AccountMenu() {
   const { state, resetDemo, exportData, toast } = useWorkspace();
   const { theme, cycleTheme } = useTheme();
   const [resetOpen, setResetOpen] = useState(false);
+  // 演示数据重置只在非生产环境提供，生产环境隐藏入口（服务端也会拒绝）。
+  const demoEnabled = process.env.NODE_ENV !== "production";
   const nextTheme =
     THEMES[(THEMES.findIndex((item) => item.id === theme) + 1) % THEMES.length];
 
@@ -224,28 +226,34 @@ function AccountMenu() {
               router.push("/");
             },
           },
-          {
-            label: "重置演示数据",
-            icon: "refresh",
-            danger: true,
-            divider: true,
-            onSelect: () => setResetOpen(true),
-          },
+          ...(demoEnabled
+            ? ([
+                {
+                  label: "重置演示数据",
+                  icon: "refresh",
+                  danger: true,
+                  divider: true,
+                  onSelect: () => setResetOpen(true),
+                },
+              ] satisfies MenuItem[])
+            : []),
         ]}
       />
 
-      <ConfirmDialog
-        open={resetOpen}
-        onClose={() => setResetOpen(false)}
-        title="重置演示数据？"
-        description="当前工作台的所有修改会被清除，恢复为最初的示例简历、目标岗位和投递记录。"
-        confirmLabel="重置数据"
-        onConfirm={() => {
-          resetDemo();
-          setResetOpen(false);
-          toast({ title: "演示数据已重置", tone: "positive" });
-        }}
-      />
+      {demoEnabled ? (
+        <ConfirmDialog
+          open={resetOpen}
+          onClose={() => setResetOpen(false)}
+          title="重置演示数据？"
+          description="当前工作台的所有修改会被清除，恢复为最初的示例简历、目标岗位和投递记录。"
+          confirmLabel="重置数据"
+          onConfirm={() => {
+            resetDemo();
+            setResetOpen(false);
+            toast({ title: "演示数据已重置", tone: "positive" });
+          }}
+        />
+      ) : null}
     </>
   );
 }

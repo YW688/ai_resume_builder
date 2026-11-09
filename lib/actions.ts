@@ -80,6 +80,17 @@ function photoUrl(photoKey: string | null): string | null {
   return base ? `${base.replace(/\/$/, "")}/${photoKey}` : null;
 }
 
+/**
+ * 照片对象 key 必须归属当前用户（上传时统一为 `${userId}/uuid.ext`）。
+ * 客户端可伪造 photoKey / oldKey，删除前必须校验前缀，避免越权删除他人对象。
+ */
+function isOwnedPhotoKey(
+  userId: string,
+  key: string | null | undefined,
+): key is string {
+  return typeof key === "string" && key.startsWith(`${userId}/`);
+}
+
 // ---- 简历 ----
 export async function saveResume(
   input: ResumeInput,
@@ -88,6 +99,7 @@ export async function saveResume(
   if (!userId) return { ok: false, error: "unauthorized" };
 
   const clean = (s: string) => (s ?? "").trim();
+  const photoKey = isOwnedPhotoKey(userId, input.photoKey) ? input.photoKey : null;
   let resumeId = input.resumeId;
 
   if (resumeId) {
@@ -106,7 +118,7 @@ export async function saveResume(
         city: clean(input.city),
         summary: input.summary,
         skills: input.skills,
-        photoKey: input.photoKey,
+        photoKey,
         updatedAt: new Date(),
       })
       .where(eq(resumes.id, resumeId));
@@ -131,7 +143,7 @@ export async function saveResume(
         city: clean(input.city),
         summary: input.summary,
         skills: input.skills,
-        photoKey: input.photoKey,
+        photoKey,
       })
       .returning({ id: resumes.id });
     resumeId = row.id;
@@ -290,7 +302,9 @@ export async function deleteResume(resumeId: string): Promise<ActionResult<null>
   });
   if (!resume) return { ok: false, error: "not_found" };
 
-  if (resume.photoKey) await deletePhoto(resume.photoKey).catch(() => {});
+  if (isOwnedPhotoKey(userId, resume.photoKey)) {
+    await deletePhoto(resume.photoKey).catch(() => {});
+  }
   await db.delete(resumes).where(eq(resumes.id, resumeId));
 
   return { ok: true, data: null };
@@ -317,7 +331,7 @@ export async function uploadPhotoAction(
   if (!url) return { ok: false, error: "storage", message: "存储配置缺失" };
 
   const oldKey = formData.get("oldKey");
-  if (typeof oldKey === "string" && oldKey) {
+  if (typeof oldKey === "string" && isOwnedPhotoKey(userId, oldKey)) {
     await deletePhoto(oldKey).catch(() => {});
   }
 
@@ -335,6 +349,17 @@ export async function rewriteExperienceAction(input: {
 
   if (!input.jd.trim()) {
     return { ok: false, error: "invalid", message: "请先粘贴职位描述（JD）" };
+  }
+
+  // resumeId 来自客户端：写入 ai_rewrites 前先校验归属，避免把记录挂到他人简历。
+  if (input.resumeId) {
+    const ownedResume = await db.query.resumes.findFirst({
+      where: and(eq(resumes.id, input.resumeId), eq(resumes.userId, userId)),
+      columns: { id: true },
+    });
+    if (!ownedResume) {
+      return { ok: false, error: "not_found", message: "简历不存在" };
+    }
   }
 
   const usage = await getUsage(userId);
@@ -440,7 +465,9 @@ export async function deleteAccount(): Promise<ActionResult<null>> {
     .from(resumes)
     .where(eq(resumes.userId, userId));
   for (const row of userResumes) {
-    if (row.photoKey) await deletePhoto(row.photoKey).catch(() => {});
+    if (isOwnedPhotoKey(userId, row.photoKey)) {
+      await deletePhoto(row.photoKey).catch(() => {});
+    }
   }
 
   // 取消 Lemon Squeezy 订阅（TODO M6：调 LS API 取消活跃订阅）

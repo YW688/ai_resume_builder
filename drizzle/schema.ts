@@ -252,7 +252,8 @@ export const orders = pgTable(
     amountFen: integer("amount_fen").notNull().default(0),
     label: text("label").notNull().default(""),
     // "pending" | "paid" | "refunded" | "cancelled"
-    status: text("status").notNull().default("paid"),
+    // 新订单默认 pending：只有支付回调确认后才允许置为 paid。
+    status: text("status").notNull().default("pending"),
     // 点数套餐 id（见 lib/credits/catalog.ts）
     packageId: text("package_id"),
     // 本单到账点数

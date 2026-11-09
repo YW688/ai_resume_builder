@@ -95,7 +95,7 @@ export function BasicInfoSection({
       : undefined
     : EMAIL_PATTERN.test(emailValue)
       ? undefined
-      : "邮箱格式不正确，例如 linxiao@example.com";
+      : "邮箱格式不正确，例如 you@example.com";
 
   return (
     <SectionCard
@@ -134,7 +134,7 @@ export function BasicInfoSection({
             id="ed-email"
             className="input"
             value={resume.email}
-            placeholder="例如 linxiao@example.com"
+            placeholder="例如 you@example.com"
             type="email"
             inputMode="email"
             autoComplete="email"

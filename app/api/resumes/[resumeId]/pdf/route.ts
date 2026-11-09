@@ -136,11 +136,19 @@ function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.slice(0, max) : "";
 }
 
+/**
+ * 照片 URL 白名单：只接受本地 data:image 或 Neon Storage 公开前缀下的地址。
+ * 不能放行任意 https://（服务端渲染 PDF 时会把 URL 交给图片加载器，形成 SSRF）。
+ * 不匹配时直接丢弃并回退到姓名首字，不抛错。
+ */
 function sanitizePhoto(value: unknown): string | null {
   if (typeof value !== "string" || value.length === 0) return null;
   if (value.length > MAX_PHOTO_CHARS) return null;
   if (value.startsWith("data:image/")) return value;
-  if (value.startsWith("https://")) return value;
+  const base = (process.env.NEON_STORAGE_PUBLIC_URL ?? "")
+    .trim()
+    .replace(/\/+$/, "");
+  if (base && value.startsWith(`${base}/`)) return value;
   return null;
 }
 

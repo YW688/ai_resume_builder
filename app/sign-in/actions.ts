@@ -29,7 +29,8 @@ function errorMessage(error: { code?: string; message?: string } | null): string
   ) {
     return "邮箱或密码不正确";
   }
-  if (code === "user_not_found") return "该邮箱尚未注册";
+  // 不区分「邮箱未注册 / 密码错误」，避免账号枚举。
+  if (code === "user_not_found") return "邮箱或密码不正确";
   if (code === "email_not_confirmed" || code === "email_not_verified") {
     return "邮箱尚未验证，请先完成邮箱验证";
   }

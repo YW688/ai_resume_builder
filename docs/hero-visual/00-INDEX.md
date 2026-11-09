@@ -3,6 +3,8 @@
 > 面向：**Claude Code（VS Code 扩展 / CLI，模型固定 千问3.8-Max `qwen3.8-max`）** 与本项目的人类审看者。
 > 生成工具链：**阿里云百炼 DashScope** —— 图像 `qwen-image-3.0-pro`（T2I/I2I），视频 `wan2.7-i2v` / `wan2.7-t2v`。
 > 当前状态：文档与提示词已按千问 API 重写；**视觉产物为 0**，旧主题 hero 仍在线（新素材验收后再切换）。
+>
+> ⚠️ **开源仓库说明**：`design/`（参考视频、角色卡、生成母版、QA 截图）因体积与第三方版权原因**未包含在本仓库中**。本文档中的 `design/...` 路径需你自备素材；如需复现，请先阅读 `01-visual-bible.md` 并准备自己的参考素材与 DashScope API Key（按次计费）。`public/hero/*`、`public/art/*` 是已交付的成品，可直接运行站点。
 
 ---
 
@@ -10,14 +12,14 @@
 
 ### 方式 A：VS Code + Claude Code（推荐）
 
-1. VS Code 打开 `.`，首次弹 **Trust this workspace** 时点信任。
+1. VS Code 打开仓库根目录（`<repo-root>`），首次弹 **Trust this workspace** 时点信任。
 2. 输入：`/hero-next`（或「按 docs/hero-visual/00-INDEX.md 开始 Hero 视觉任务」）。
 3. Claude 会按 `CLAUDE.md`：先给 5 行方案 → `scripts/hero/doctor.cmd` → 读阶段文档 → dry-run → 经你确认后 `--run`（计费）。
 
 ### 方式 B：终端
 
 ```powershell
-cd .
+cd <repo-root>
 scripts/hero/setup-claude.cmd    # 首次：写 key 并实测
 claude
 ```

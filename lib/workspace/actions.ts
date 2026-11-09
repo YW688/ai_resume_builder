@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { and, eq, notInArray, sql } from "drizzle-orm";
+import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import {
@@ -45,7 +45,11 @@ import type {
   WorkspaceState,
 } from "@/lib/mock/types";
 import { loadWorkspace } from "./load";
-import { clearWorkspace, seedDemoWorkspace } from "./seed";
+import {
+  clearWorkspace,
+  isDemoModeEnabled,
+  seedDemoWorkspace,
+} from "./seed";
 
 export type WorkspaceResult<T = undefined> =
   | { ok: true; data: T }
@@ -84,6 +88,10 @@ export async function loadWorkspaceAction(): Promise<WorkspaceState> {
 
 export async function resetDemoAction(): Promise<WorkspaceResult<WorkspaceState>> {
   const userId = await requireUser();
+  // 生产环境禁用演示重置：否则任何登录用户都能把账号恢复成 paid / 18 点。
+  if (!isDemoModeEnabled()) {
+    throw new Error("演示功能已禁用");
+  }
   await clearWorkspace(userId);
   // 演示数据重置时把点数账户也恢复到示例状态，避免旧余额/流水残留。
   await db
@@ -123,11 +131,17 @@ export async function saveResumeAction(resume: Resume): Promise<WorkspaceResult>
   const userId = await requireUser();
   const id = resume.id;
 
+  // 按 id 查归属：如果该 id 已属于其他用户，绝不能走 insert ... on conflict update
+  // 去覆盖他人简历；直接拒绝。
   const existing = await db
-    .select({ id: resumes.id })
+    .select({ userId: resumes.userId })
     .from(resumes)
-    .where(and(eq(resumes.id, id), eq(resumes.userId, userId)))
+    .where(eq(resumes.id, id))
     .limit(1);
+  if (existing[0] && existing[0].userId !== userId) {
+    return { ok: false, error: "not_found", message: "简历不存在" };
+  }
+  const ownedResume = Boolean(existing[0]);
 
   const targetJobId = await ownsJob(userId, resume.targetJobId);
   const values = {
@@ -146,10 +160,13 @@ export async function saveResumeAction(resume: Resume): Promise<WorkspaceResult>
   };
 
   try {
-    if (existing[0]) {
-      await db.update(resumes).set(values).where(eq(resumes.id, id));
-    } else {
+    if (ownedResume) {
       await db
+        .update(resumes)
+        .set(values)
+        .where(and(eq(resumes.id, id), eq(resumes.userId, userId)));
+    } else {
+      const [saved] = await db
         .insert(resumes)
         .values({
           id,
@@ -157,7 +174,17 @@ export async function saveResumeAction(resume: Resume): Promise<WorkspaceResult>
           ...values,
           createdAt: toDateOrNow(resume.createdAt),
         })
-        .onConflictDoUpdate({ target: resumes.id, set: values });
+        // setWhere 兜底：并发下若 id 被他人占用，跳过更新而不是覆盖他人行。
+        .onConflictDoUpdate({
+          target: resumes.id,
+          set: values,
+          setWhere: eq(resumes.userId, userId),
+        })
+        .returning({ userId: resumes.userId });
+      // 冲突到他人行时 DO UPDATE 被跳过、RETURNING 为空：拒绝继续写子表。
+      if (!saved || saved.userId !== userId) {
+        return { ok: false, error: "not_found", message: "简历不存在" };
+      }
     }
 
     // 子项同步：先 upsert（并发保存时不会撞主键），再删掉本次未提交的行。
@@ -183,6 +210,37 @@ export async function saveResumeAction(resume: Resume): Promise<WorkspaceResult>
       sortOrder: index,
     }));
 
+    // 子记录 id 由客户端提供：若该 id 已挂在其他简历（可能是其他用户）下，
+    // 直接拒绝，避免通过 upsert 把他人工作经历/教育经历挂到自己的简历上。
+    if (experienceRows.length) {
+      const clashes = await db
+        .select({ resumeId: experiences.resumeId })
+        .from(experiences)
+        .where(
+          inArray(
+            experiences.id,
+            experienceRows.map((row) => row.id),
+          ),
+        );
+      if (clashes.some((row) => row.resumeId !== id)) {
+        return { ok: false, error: "not_found", message: "工作经历不存在" };
+      }
+    }
+    if (educationRows.length) {
+      const clashes = await db
+        .select({ resumeId: educations.resumeId })
+        .from(educations)
+        .where(
+          inArray(
+            educations.id,
+            educationRows.map((row) => row.id),
+          ),
+        );
+      if (clashes.some((row) => row.resumeId !== id)) {
+        return { ok: false, error: "not_found", message: "教育经历不存在" };
+      }
+    }
+
     if (experienceRows.length) {
       await db
         .insert(experiences)
@@ -198,6 +256,8 @@ export async function saveResumeAction(resume: Resume): Promise<WorkspaceResult>
             description: sql`excluded.description`,
             sortOrder: sql`excluded.sort_order`,
           },
+          // 兜底：只允许更新当前简历下的行，冲突到他人行时跳过更新。
+          setWhere: eq(experiences.resumeId, id),
         });
       await db
         .delete(experiences)
@@ -226,6 +286,7 @@ export async function saveResumeAction(resume: Resume): Promise<WorkspaceResult>
             endDate: sql`excluded.end_date`,
             sortOrder: sql`excluded.sort_order`,
           },
+          setWhere: eq(educations.resumeId, id),
         });
       await db
         .delete(educations)
@@ -266,10 +327,14 @@ export async function deleteResumeAction(resumeId: string): Promise<WorkspaceRes
 export async function saveJobAction(job: Job): Promise<WorkspaceResult<{ keywords: string[] }>> {
   const userId = await requireUser();
   const existing = await db
-    .select({ id: jobs.id })
+    .select({ userId: jobs.userId })
     .from(jobs)
-    .where(and(eq(jobs.id, job.id), eq(jobs.userId, userId)))
+    .where(eq(jobs.id, job.id))
     .limit(1);
+  if (existing[0] && existing[0].userId !== userId) {
+    return { ok: false, error: "not_found", message: "岗位不存在" };
+  }
+  const ownedJob = Boolean(existing[0]);
 
   let keywords = (job.keywords ?? [])
     .map((item) => clean(item))
@@ -302,13 +367,24 @@ export async function saveJobAction(job: Job): Promise<WorkspaceResult<{ keyword
   };
 
   try {
-    if (existing[0]) {
-      await db.update(jobs).set(values).where(eq(jobs.id, job.id));
-    } else {
+    if (ownedJob) {
       await db
+        .update(jobs)
+        .set(values)
+        .where(and(eq(jobs.id, job.id), eq(jobs.userId, userId)));
+    } else {
+      const [saved] = await db
         .insert(jobs)
         .values({ id: job.id, userId, ...values })
-        .onConflictDoUpdate({ target: jobs.id, set: values });
+        .onConflictDoUpdate({
+          target: jobs.id,
+          set: values,
+          setWhere: eq(jobs.userId, userId),
+        })
+        .returning({ userId: jobs.userId });
+      if (!saved || saved.userId !== userId) {
+        return { ok: false, error: "not_found", message: "岗位不存在" };
+      }
     }
   } catch (error) {
     console.error("saveJobAction failed", error);
@@ -347,10 +423,14 @@ export async function saveApplicationAction(application: Application): Promise<W
   }
 
   const existing = await db
-    .select({ id: applications.id })
+    .select({ userId: applications.userId })
     .from(applications)
-    .where(and(eq(applications.id, application.id), eq(applications.userId, userId)))
+    .where(eq(applications.id, application.id))
     .limit(1);
+  if (existing[0] && existing[0].userId !== userId) {
+    return { ok: false, error: "not_found", message: "投递记录不存在" };
+  }
+  const ownedApplication = Boolean(existing[0]);
 
   const values = {
     company: clean(application.company),
@@ -365,13 +445,29 @@ export async function saveApplicationAction(application: Application): Promise<W
   };
 
   try {
-    if (existing[0]) {
-      await db.update(applications).set(values).where(eq(applications.id, application.id));
-    } else {
+    if (ownedApplication) {
       await db
+        .update(applications)
+        .set(values)
+        .where(
+          and(
+            eq(applications.id, application.id),
+            eq(applications.userId, userId),
+          ),
+        );
+    } else {
+      const [saved] = await db
         .insert(applications)
         .values({ id: application.id, userId, ...values })
-        .onConflictDoUpdate({ target: applications.id, set: values });
+        .onConflictDoUpdate({
+          target: applications.id,
+          set: values,
+          setWhere: eq(applications.userId, userId),
+        })
+        .returning({ userId: applications.userId });
+      if (!saved || saved.userId !== userId) {
+        return { ok: false, error: "not_found", message: "投递记录不存在" };
+      }
     }
   } catch (error) {
     console.error("saveApplicationAction failed", error);
@@ -489,6 +585,10 @@ export async function markAllNotificationsReadAction(): Promise<WorkspaceResult>
 
 export async function renewPlanAction(): Promise<WorkspaceResult<Plan>> {
   const userId = await requireUser();
+  // 该 action 不校验支付、只用于本地演示；生产环境绝不能把用户免费升级为 paid。
+  if (!isDemoModeEnabled()) {
+    throw new Error("演示功能已禁用");
+  }
   try {
     const userRow = (
       await db.select().from(users).where(eq(users.id, userId)).limit(1)

@@ -1,6 +1,7 @@
 {
     "recommendations": [
-        "anthropic.claude-code",
-        "openai.chatgpt"
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode"
     ]
 }

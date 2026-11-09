@@ -70,8 +70,10 @@ function readEnv(name: string): string {
   return (process.env[name] ?? "").trim();
 }
 
-/** AI_MOCK=1 时进入本地演示模式（不联网，用于联调 / 截图）。默认关闭。 */
+/** AI_MOCK=1 时进入本地演示模式（不联网，用于联调 / 截图）。默认关闭。
+ *  生产环境强制忽略该变量，避免用假文案照常扣点；缺 Key 时仍走明确的“未配置”报错。 */
 export function isMockMode(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
   return readEnv("AI_MOCK") === "1";
 }
 

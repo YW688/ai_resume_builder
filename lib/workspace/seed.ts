@@ -25,6 +25,15 @@ import { initialWorkspace } from "@/lib/mock/data";
  */
 const DEMO = initialWorkspace;
 
+/**
+ * 演示数据 / 演示功能是否启用。
+ * 生产环境默认关闭；只有本地开发或显式 `DEMO_MODE=1` 时才允许写入演示
+ * 套餐、点数与业务数据，避免线上新用户被免费提权。
+ */
+export function isDemoModeEnabled(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.DEMO_MODE === "1";
+}
+
 function uuid(): string {
   return crypto.randomUUID();
 }
